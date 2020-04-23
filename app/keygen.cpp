@@ -2,6 +2,10 @@
 #include <thread>
 #include <stdexcept>
 
+/**
+ * Constructer for KeyGen
+ * @params : context, lenght of secret key
+ */
 Keygen::Keygen(std::shared_ptr<Context> context, int sk_len)
     :context(context), msk_len(sk_len)
 {
@@ -13,6 +17,10 @@ Keygen::Keygen(std::shared_ptr<Context> context, int sk_len)
     generate_pk();
 }
 
+/**
+ * Constructer for KeyGen
+ * @params : context, copy of secret key
+ */
 Keygen::Keygen(std::shared_ptr<Context> context, const Secret_Key &secret_key_copy)
     :context(context), sk(secret_key_copy), gen_secret_key(false)
 {
@@ -25,7 +33,7 @@ Keygen::Keygen(std::shared_ptr<Context> context, const Secret_Key &secret_key_co
 }
 
 
-// Generate cryptographic keys (USE STRONGER RANDOM NUMBER GENERATOR!!!)
+// Generate secret key (USE STRONGER RANDOM NUMBER GENERATOR!!!)
 void Keygen::generate_sk_util(Keygen &gen, int tid, gmp_randstate_t state, int numThreads)
 {
     int col = tid;
@@ -65,7 +73,7 @@ void Keygen::generate_sk()
     this->gen_secret_key = false;
 }
 
-// Generate cryptographic keys (USE STRONGER RANDOM NUMBER GENERATOR!!!)
+// Generate public key (USE STRONGER RANDOM NUMBER GENERATOR!!!)
 void Keygen::generate_pk_util(Keygen &gen, int tid, int numThreads)
 {
     int col = tid;
@@ -76,7 +84,7 @@ void Keygen::generate_pk_util(Keygen &gen, int tid, int numThreads)
     }
 }
 
-// Generate secret key
+// Generate public key
 void Keygen::generate_pk()
 {
     if(gen_secret_key)
@@ -101,7 +109,7 @@ const Secret_Key& Keygen::secret_key() const
     return this->sk;
 }
 
-// Return the secret key
+// Return the public key
 const Public_Key& Keygen::public_key() const
 {
     if(gen_secret_key)

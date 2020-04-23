@@ -1,7 +1,6 @@
 #include "logistic_regression.h"
 #include "helper.h"
 #include <thread>
-#include "../enclave/Enclave.h"
 #include "sgx_urts.h"
 #include "../include/shared.h"
 #include <iostream>
@@ -9,18 +8,30 @@
 #define TRAIN 0
 #define PREDICTION 1
 
+/**
+ * Constructor for Logistic_Regression
+ * @params : context, number of training iteration, regularization constant
+ */
 Logistic_Regression::Logistic_Regression(std::shared_ptr<Context> context, int iter, float reg_const)
     :ctx(context), iterations(iter), lambda(reg_const)
 {
     mpz_init(this->sfk);
 }
 
+/**
+ * Default destructor
+ */
 Logistic_Regression::~Logistic_Regression()
 {
     mpz_clear(this->sfk);
     delete_matrix(this->weights);
 }
 
+/**
+ * Make prediction given the encrypted input and commitment
+ * @params : encrypted input, encrypted cmt, evaluator
+ * @return : store result in ypred
+ */
 void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt, Evaluator &eval)
 {
     Matrix compression = mat_init(xtest_enc->rows, 1);
@@ -35,11 +46,10 @@ void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt,
     delete_matrix(compression);
 }
 
-void Logistic_Regression::enclave_set_sfk()
-{
-    row_inner_product(this->sfk, this->weights, sk_1->data());
-}
-
+/**
+ * Compute accuracy
+ * TODO : Compute precision, recall, f1 score
+ */
 void Logistic_Regression::compute_performance_metrics(const Matrix &ypred, const Matrix &ytrue)
 {
     if(ypred->cols != ytrue->cols || ypred->rows != ytrue->rows)
@@ -58,6 +68,9 @@ void Logistic_Regression::compute_performance_metrics(const Matrix &ypred, const
 
 }
 
+/**
+ * Train the model in given inputs to obtain model parameters
+ */
 void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Matrix &ytrain, Matrix &cmt_xtrain, Matrix &cmt_xtrain_trans, int batchSize, float learning_rate)
 {
     // Check input dimensions (ytrain includes an extra col for the commitment)

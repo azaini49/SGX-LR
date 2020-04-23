@@ -73,7 +73,10 @@ void Context::generate_safe_prime(int bits)
     mpz_clear(num);
 }
 
-
+/*
+ * Get the field generator
+ * @return : generator
+ */
 void Context::generator()
 {
     // Create random state to use as seed

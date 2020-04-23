@@ -5,6 +5,10 @@
 #include "helper.h"
 #include <iostream>
 
+/**
+ * Constructor for evaluator
+ * @params : context
+ */
 Evaluator::Evaluator(std::shared_ptr<Context> context)
     :ctx(context)
 {
@@ -12,6 +16,9 @@ Evaluator::Evaluator(std::shared_ptr<Context> context)
         throw std::invalid_argument("Context cannot be null!");
 }
 
+/**
+ * Utility function to perform multithreaded compression
+ */
 void Evaluator::compress_util_IP(Evaluator &eval, Matrix &compression, const Matrix &ciphertext, const Matrix &inp, int start, int end, int tid, int numThreads)
 {
     int row = tid;
@@ -34,7 +41,11 @@ void Evaluator::compress_util_IP(Evaluator &eval, Matrix &compression, const Mat
     mpz_clear(tmp);
 }
 
-
+/**
+ * Compress the ciphertext given inp
+ * @params : ciphertext, 2nd input to function being evaluated
+ * @return : compressed ciphertext
+ */
 void Evaluator::compress(Matrix &compression, const Matrix &ciphertext, const Matrix &inp, int start, int end) 
 {
     if(ciphertext->rows != compression->rows || compression->cols != 1 || inp->cols != ciphertext->cols)

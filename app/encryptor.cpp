@@ -1,6 +1,10 @@
 #include "encryptor.h"
 #include <thread>
 
+/**
+ * Constructor for Encryptor
+ * @params : context, FE pk
+ */
 Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key)
     :ctx(context), pk(pub_key)
 {
@@ -43,6 +47,11 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix &ciphertext, Matrix &commitm
     mpz_clear(tmp);
 }
 
+/**
+ * Encrypt plaintext to get the corresponding ciphertext and commitment
+ * @params : plaintext matrix
+ * @return : ciphertext, commitment
+ */
 void Encryptor::encrypt(Matrix &ciphertext, Matrix &commitment, const Matrix &plaintext)
 {
     if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)

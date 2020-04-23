@@ -1,0 +1,11 @@
+# Ignore all non-source files
+!app/*.cpp
+!app/*.h
+!enclave/*.cpp
+!enclave/*.h
+!enclave/*.pem
+!enclave/*.edl
+!include/*.h
+!tools/*.cpp
+!tools/*.h
+!Makefile

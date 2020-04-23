@@ -2,7 +2,6 @@
 #include <gmp.h>
 #include <gmpxx.h>
 #include "matrix.h"
-#include <map>
 #include <memory>
 
 class Context

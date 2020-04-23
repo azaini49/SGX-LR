@@ -36,7 +36,7 @@ int sigmoid(mpz_t res, double x)
     return COMPLETED;
 }
 
-// Straight forward lookup in lookup table
+// Straight forward lookup in lookup table to get discrete log value
 int get_discrete_log(mpz_t &x, mpz_t p)
 {
     mpz_class key{x};
@@ -58,7 +58,9 @@ int get_discrete_log(mpz_t &x, mpz_t p)
     return COMPLETED;
 }
 
-// Utility function to generate lookup table
+/** Utility function to generate lookup table
+ * Currently supports only num_threads = 1
+ */
 int compute_lookup_table(Request &req)
 {
     // Temporary variable
@@ -232,6 +234,11 @@ int compute_lookup_table(Request &req)
 // }
 
 
+/**
+ * Decrypt commitments and compute the FE result
+ * Currently commitments are not encfypted
+ * Supports num_threads = 1
+ */
 int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const mpz_t &sfk, int activation, Request &req, int start, int end, int mode)
 {
     if(dest == NULL || compression == NULL || cmt == NULL || sfk == NULL)
@@ -261,7 +268,7 @@ int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const m
 
         if(mode == ENCRYPT)
         {
-
+            // Encrypt tmp using enclave pk
         }
         else
             mpz_set(mat_element(dest, 0, row), tmp);
@@ -426,4 +433,5 @@ int enclave_service(void* arg)
                 break;
         }
     }
+    return SUCCESS;
 }
