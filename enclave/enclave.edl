@@ -1,0 +1,10 @@
+enclave
+{
+    trusted
+    {
+        public int enclave_service([user_check]void* task_queue);
+    };
+
+    untrusted
+    {};
+};
