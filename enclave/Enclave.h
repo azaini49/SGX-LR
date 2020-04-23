@@ -1,7 +1,7 @@
 #pragma once
 
 // #include <gmp.h>
-#include <gmpxx.h>
+#include "../tools/sgx_tgmp.h"
 #include "../app/matrix.h"
 #include "../app/logistic_regression.h"
 #include "../app/evaluator.h"
@@ -31,9 +31,9 @@ std::unique_ptr<Secret_Key> sk_2;
 
 struct MapComp
 {
-    bool operator() (const mpz_class a, const mpz_class b) const
+    bool operator() (const mpz_t a, const mpz_t b) const
     {
-        int flag = mpz_cmp(a.get_mpz_t(), b.get_mpz_t());
+        int flag = mpz_cmp(a, b);
         if(flag < 0)
             return true;
         return false;

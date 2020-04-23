@@ -1,6 +1,6 @@
 #pragma once
 
-# include "sgx_tgmp.h"
+# include "../tools/sgx_tgmp.h"
 // #include <gmp.h>
 #include <gmpxx.h>
 #include <map>

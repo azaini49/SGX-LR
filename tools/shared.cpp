@@ -1,5 +1,6 @@
 #include "../include/shared.h"
 #include "../app/matrix.h"
+#include <string.h>
 
 Wrapper init_wrapper(float alpha, float learning_rate)
 {
@@ -18,7 +19,7 @@ Wrapper init_wrapper(float alpha, float learning_rate)
 
 Request init_request(int job_id, int num_threads)
 {
-    Request req = (Request)malloc(4 * sizeof(Matrix*) + 4*sizeof(int) + 4*sizeof(char*) + sizeof(Wrapper));
+    Request req = (Request)malloc(4 * sizeof(Matrix*) + 5*sizeof(int) + 3*sizeof(char*) + sizeof(Wrapper));
     req->job_id = job_id;
     req->num_threads = num_threads;
     req->status = SCHEDULED;
@@ -31,7 +32,7 @@ Request init_request(int job_id, int num_threads)
     req->cmt = NULL;
     req->compression = NULL;
     req->output = NULL;
-    req->limit = NULL;
+    req->limit = 15;
     req->tid = 0;
     req->key_id = -1;
 

@@ -3,7 +3,7 @@
 #include <vector>
 #include <mutex>
 #include "Queue.h"
-#include <sgx_trts.h>
+#include "../tools/sgx_tgmp.h"
 
 #ifndef SUCCESS
 #define SUCCESS 1
@@ -14,7 +14,7 @@
 #endif
 
 std::mutex gaurd;
-static std::map<mpz_class, mpz_class> lookup;
+static std::map<mpz_t, mpz_t> lookup;
 
 // Compute the sigmoid and round to nearest integer
 int sigmoid(mpz_t res, double x)
@@ -37,21 +37,19 @@ int sigmoid(mpz_t res, double x)
 // Straight forward lookup in lookup table to get discrete log value
 int get_discrete_log(mpz_t &x, mpz_t p)
 {
-    mpz_class key{x};
-    std::map<mpz_class, mpz_class, MapComp>::iterator it = lookup.find(key);
+    std::map<mpz_t, mpz_t, MapComp>::iterator it = lookup.find(x);
     if(it == lookup.end())
     {
         mpz_invert(x, x, p);
-        mpz_class key{x};
-        it = lookup.find(key);
+        it = lookup.find(x);
         if(it == lookup.end())
             mpz_set_si(x, -1);
         else
-            mpz_mul_si(x, it->second.get_mpz_t(), -1);
+            mpz_mul_si(x, it->second, -1);
     }
     else
     {
-        mpz_set(x, it->second.get_mpz_t());
+        mpz_set(x, it->second);
     }
     return COMPLETED;
 }
@@ -67,7 +65,11 @@ int compute_lookup_table(Request &req)
 
     mpz_t limit_;
     mpz_init(limit_);
-    mpz_set_str(limit_, req->limit, BASE);
+    mpz_ui_pow_ui(limit_, 2, req->limit);
+
+    mpz_t i;
+    mpz_init(i);
+    mpz_set_si(i, req->tid);
 
     mpz_t p;
     mpz_init(p);
@@ -76,18 +78,15 @@ int compute_lookup_table(Request &req)
     mpz_set_str(p, req->p, BASE);
     mpz_set_str(g, req->g, BASE);
 
-    mpz_class limit{limit_};
-
-    mpz_class i = req->tid;
-    while(i < std::min(limit, mpz_class{p}))
+    while(mpz_cmp(limit_, i) >= 0)
     {
-        mpz_powm(tmp, g, i.get_mpz_t(), p);
+        mpz_powm(tmp, g, i, p);
         std::unique_lock<std::mutex> locker(gaurd);
-        lookup[mpz_class{tmp}] = i;
+        mpz_set(lookup[tmp], i);
         mpz_invert(tmp, tmp, p);
-        lookup[mpz_class{tmp}] = -i;
+        mpz_set_si(lookup[tmp], -mpz_get_si(i));
         locker.unlock();
-        i = i + req->num_threads;
+        mpz_add_ui(i, i, 1);
     }
     mpz_clear(tmp);
     mpz_clear(p);
@@ -380,7 +379,7 @@ int predict_final(Request &req)
     int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, ENCRYPT);
 
     // Free mpz_t
-    free(sfk);
+    mpz_clear(sfk);
     return result;
 }
 
@@ -398,7 +397,7 @@ int predict_train(Request &req)
     // DECRYPT CMT!!
     int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, NO_ENCRYPT);
 
-    free(sfk);
+    mpz_clear(sfk);
     return result;
 }
 

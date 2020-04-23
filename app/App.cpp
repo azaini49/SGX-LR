@@ -126,6 +126,7 @@ int main(int argc, char const *argv[])
     Request req = init_request(GENERATE_LOOKUP_TABLE, 1);
     mpz_get_str(req->p, BASE, ctx->p);
     mpz_get_str(req->g, BASE, ctx->g);
+    req->limit = 10;
     make_request(req);
 
     // Generate pk and sk to encrypt xtrain and xtest

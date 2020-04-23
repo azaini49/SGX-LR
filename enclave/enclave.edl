@@ -2,7 +2,9 @@ enclave
 {
     trusted
     {
-        include "sgx_tgmp.h"
+        include "../tools/sgx_tgmp.h"
+        include "../app/matrix.h"
+        include "../app/Secret_Key.h"
         public int enclave_service([user_check]void* task_queue);
     };
 

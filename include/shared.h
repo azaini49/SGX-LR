@@ -25,7 +25,7 @@
 #include <mutex>
 #include <condition_variable>
 #include "../app/matrix.h"
-# include "sgx_tgmp.h"
+# include "../tools/sgx_tgmp.h"
 // #ifdef HAVE_SGX
 // 	# include <sgx_tgmp.h>
 // #else
@@ -72,7 +72,7 @@ typedef struct request
     char* p;
     char* g;
     char* final_sfk;
-    char* limit;
+    int limit;
 
     Wrapper wp;
 

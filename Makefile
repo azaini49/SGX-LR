@@ -4,7 +4,7 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
-SGX_GMP =  /opt/gmp/6.1.2/
+SGX_GMP =  /opt/gmp/6.1.2
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -62,7 +62,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) -std=c++14
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -L$(SGX_GMP)/lib -lsgx_tgmp
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -L$(SGX_GMP)/lib -lsgx_tgmp -lgmpxx
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -85,7 +85,7 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := $(wildcard Enclave/*.cpp) $(wildcard tools/*.cpp)
+Enclave_Cpp_Files := $(wildcard Enclave/*.cpp)
 Enclave_Include_Paths := -I include -I enclave -I $(SGX_SDK)/include -I $(SGX_SDK)/include/tlibc -I $(SGX_SDK)/include/libcxx -I $(SGX_GMP)/include
 
 CC_BELOW_4_9 := $(shell expr "`$(CC) -dumpversion`" \< "4.9")
@@ -205,7 +205,7 @@ enclave/%.o: enclave/%.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
 
-$(Enclave_Name): enclave/Enclave_t.o $(Enclave_Cpp_Objects)
+$(Enclave_Name): enclave/Enclave_t.o $(Enclave_Cpp_Objects) tools/shared.o tools/sync_utils.o tools/Queue.o
 	@$(CXX) $^ -o $@ $(Enclave_Link_Flags)
 	@echo "LINK =>  $@"
 

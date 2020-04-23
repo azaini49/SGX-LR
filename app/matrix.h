@@ -2,7 +2,6 @@
 
 // #include <stdbool.h>
 // #include <gmp.h>
-#include <gmpxx.h>
 #include <vector>
 #include <iostream>
 
@@ -58,8 +57,8 @@
 // #else
 // 	# include <gmp.h>
 // #endif
-#include <gmpxx.h>
-#include "sgx_tgmp.h"
+//#include <gmpxx.h>
+#include "../tools/sgx_tgmp.h"
 
 #ifndef _MATRIX_H
 #define _MATRIX_H
@@ -85,8 +84,8 @@ Matrix add_rows_new(Matrix A,int row1, int row2, int i1, int i2);
 Matrix add_cols(Matrix A,int col1, int col2, int a, int b);
 void add_matrix(Matrix C, Matrix A, Matrix B, mpz_t mod);
 void swap(Matrix A, int row1, int row2);
-void matrix_mult(Matrix C, Matrix A, Matrix B, mpz_class mod = -1);
-void row_major_multiplication(Matrix result, Matrix A, Matrix B, mpz_class mod = -1);
+void matrix_mult(Matrix C, Matrix A, Matrix B, int mod = -1);
+void row_major_multiplication(Matrix result, Matrix A, Matrix B, int mod = -1);
 void make_indentity(Matrix A);
 bool is_identity(Matrix A);
 int is_zero_matrix(Matrix A);
@@ -96,8 +95,8 @@ void mat_splice(Matrix &dest, Matrix &src, int first_row_s, int last_row_s, int 
 Matrix concat_horizontal(Matrix A, Matrix B);
 Matrix concat_vertical(Matrix A, Matrix B);
 void matrix_mod(Matrix res, Matrix A, mpz_t mod);
-void row_inner_product(mpz_t result, const Matrix &A, const Matrix &B, mpz_class mod = -1, int rowIdx_A = 0, int rowIdx_B = -1, int colBegin_A = 0, int colEnd_A = -1, int colBegin_B = 0, int colEnd_B = -1);
-void inner_product(Matrix& result, Matrix& A, Matrix& B, mpz_class mod = -1);
+void row_inner_product(mpz_t result, const Matrix &A, const Matrix &B, int mod = -1, int rowIdx_A = 0, int rowIdx_B = -1, int colBegin_A = 0, int colEnd_A = -1, int colBegin_B = 0, int colEnd_B = -1);
+void inner_product(Matrix& result, Matrix& A, Matrix& B, int mod = -1);
 void print_matrix(Matrix A, int r1 = 0, int r2 = -1, int c1 = 0, int c2 = -1);
 
 #endif

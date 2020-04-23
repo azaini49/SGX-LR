@@ -6,6 +6,7 @@
 #include <thread>
 #include <iostream>
 #include <mutex>
+#include <string.h>
 
 std::mutex gaurd2;
 
@@ -280,7 +281,7 @@ void mult_util(Matrix C, Matrix A, Matrix B, int tid, mpz_t mod, int numThreads)
 }
 
 // Multithreaded matrix multiplication
-void matrix_mult(Matrix C, Matrix A, Matrix B, mpz_class mod)
+void matrix_mult(Matrix C, Matrix A, Matrix B, int mod)
 {
   if(A->cols != B->rows)
   {
@@ -300,6 +301,10 @@ void matrix_mult(Matrix C, Matrix A, Matrix B, mpz_class mod)
   Matrix B_temp = mat_init(B->cols, B->rows);
   transpose(B_temp, B);
 
+  mpz_t mod_;
+  mpz_init(mod_);
+  mpz_set_si(mod_, mod);
+
   // Define threadpool
   int numThreads = A->rows;
   int numCores = std::thread::hardware_concurrency();
@@ -308,16 +313,17 @@ void matrix_mult(Matrix C, Matrix A, Matrix B, mpz_class mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(mult_util, std::ref(C), std::ref(A), std::ref(B_temp), i, mod.get_mpz_t(), numThreads);
+    threads[i] = std::thread(mult_util, std::ref(C), std::ref(A), std::ref(B_temp), i, mod_, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
     threads[i].join();
   delete_matrix(B_temp);
+  mpz_clear(mod_);
 }
 
 // Custom multiplication using row-wise multiplication for better performance: Result is A(B^T)
-void row_major_multiplication(Matrix result, Matrix A, Matrix B, mpz_class mod)
+void row_major_multiplication(Matrix result, Matrix A, Matrix B, int mod)
 {
   // Verify dimensions of input matrices
   if(A->cols != B->cols)
@@ -337,6 +343,10 @@ void row_major_multiplication(Matrix result, Matrix A, Matrix B, mpz_class mod)
     exit(1);
   }
 
+  mpz_t mod_;
+  mpz_init(mod_);
+  mpz_set_si(mod_, mod);
+
   // Define threadpool
   int numThreads = A->rows;
   int numCores = std::thread::hardware_concurrency();
@@ -345,11 +355,12 @@ void row_major_multiplication(Matrix result, Matrix A, Matrix B, mpz_class mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(mult_util, std::ref(result), std::ref(A), std::ref(B), i, mod.get_mpz_t(), numThreads);
+    threads[i] = std::thread(mult_util, std::ref(result), std::ref(A), std::ref(B), i, mod_, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
     threads[i].join();
+  mpz_clear(mod_);
 }
 
 
@@ -670,7 +681,7 @@ void matrix_mod(Matrix res, Matrix A, mpz_t mod)
 }
 
 // Inner product of specified rows in the given matrix
-void row_inner_product(mpz_t result, const Matrix& A, const Matrix& B, mpz_class mod, int rowIdx_A, int rowIdx_B, int colBegin_A, int colEnd_A, int colBegin_B, int colEnd_B)
+void row_inner_product(mpz_t result, const Matrix& A, const Matrix& B, int mod, int rowIdx_A, int rowIdx_B, int colBegin_A, int colEnd_A, int colBegin_B, int colEnd_B)
 {
     if(rowIdx_B == -1)
         rowIdx_B = rowIdx_A;
@@ -717,6 +728,10 @@ void row_inner_product(mpz_t result, const Matrix& A, const Matrix& B, mpz_class
     mpz_init(tmp2);
     mpz_set_si(tmp2, 0);
 
+    mpz_t mod_;
+    mpz_init(mod_);
+    mpz_set_si(mod_, mod);
+
     int range = colEnd_A - colBegin_A + 1;
     for(int i = 0; i < range; i++)
     {
@@ -725,10 +740,11 @@ void row_inner_product(mpz_t result, const Matrix& A, const Matrix& B, mpz_class
     }
     mpz_set(result, tmp2);
     if(mod != -1)
-        mpz_mod(result, result, mod.get_mpz_t());
+        mpz_mod(result, result, mod_);
+    mpz_clear(mod_);
 }
 
-void inner_product_util(Matrix& result, Matrix &A, Matrix &B, mpz_class mod, int tid, int numThreads)
+void inner_product_util(Matrix& result, Matrix &A, Matrix &B, int mod, int tid, int numThreads)
 {
     int row = tid;
     while(row < A->rows)
@@ -739,7 +755,7 @@ void inner_product_util(Matrix& result, Matrix &A, Matrix &B, mpz_class mod, int
 }
 
 // Row-wise inner product of two matrices
-void inner_product(Matrix &result, Matrix &A, Matrix &B, mpz_class mod)
+void inner_product(Matrix &result, Matrix &A, Matrix &B, int mod)
 {
     // Check dimensions of input matrices
     if(A->rows != B->rows || A->cols != B->cols)
