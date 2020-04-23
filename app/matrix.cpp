@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "matrix.h"
-#include <gmp.h>
-#include <gmpxx.h>
+// #include <gmp.h>
+// #include <gmpxx.h>
 #include <thread>
 #include <iostream>
 #include <mutex>
@@ -799,7 +799,7 @@ void print_matrix(Matrix A, int r1, int r2, int c1, int c2)
   {
     for (int j = c1; j < c2+1; j++)
     {
-      gmp_printf("%Zd ", mat_element(A, i, j));
+      printf("%lf ",  mpz_get_d(mat_element(A, i, j)));
     }
     printf("\n");
   }

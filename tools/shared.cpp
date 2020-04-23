@@ -3,10 +3,9 @@
 
 Wrapper init_wrapper(float alpha, float learning_rate)
 {
-    Wrapper wp = (Wrapper)malloc(sizeof(Matrix*) + 2*sizeof(float) + 4*sizeof(int) + sizeof(mpz_t));
+    Wrapper wp = (Wrapper)malloc(sizeof(Matrix*) + 2*sizeof(float) + 4*sizeof(int));
     wp->alpha = alpha;
     wp->learning_rate = learning_rate;
-    mpz_init(wp->sfk);
 
     wp->batch_size = 1024;
     wp->start_idx = 0;
@@ -19,20 +18,20 @@ Wrapper init_wrapper(float alpha, float learning_rate)
 
 Request init_request(int job_id, int num_threads)
 {
-    Request req = (Request)malloc(4 * sizeof(Matrix*) + 4*sizeof(int) + 3*sizeof(mpz_t) + sizeof(mpz_class) + sizeof(Wrapper));
+    Request req = (Request)malloc(4 * sizeof(Matrix*) + 4*sizeof(int) + 4*sizeof(char*) + sizeof(Wrapper));
     req->job_id = job_id;
     req->num_threads = num_threads;
     req->status = SCHEDULED;
 
-    mpz_init(req->g);
-    mpz_init(req->p);
-    mpz_init(req->final_sfk);
+    req->g = NULL;
+    req->p = NULL;
+    req->final_sfk = NULL;
     req->wp = NULL;
     req->input_1 = NULL;
     req->cmt = NULL;
     req->compression = NULL;
     req->output = NULL;
-    req->limit = 15;
+    req->limit = NULL;
     req->tid = 0;
     req->key_id = -1;
 
@@ -51,8 +50,6 @@ Wrapper* make_wrapper_copy(Wrapper wp, int copies)
         copy->update_cols = wp->update_cols;
         copy->update_rows = wp->update_rows;
         copy->training_error = wp->training_error;
-        if(wp->sfk != NULL)
-            mpz_set(copy->sfk, wp->sfk);
         copy_arr[i] = copy;
     }
     copy_arr[copies] = NULL;
@@ -73,9 +70,19 @@ Request* make_request_copy(Request req, int copies)
         copy->compression = req->compression;
         copy->cmt = req->cmt;
         if(req->g != NULL)
-            mpz_set(copy->g, req->g);
+        {
+            int g_len = strlen(req->g);
+            copy->g = (char*)malloc(g_len + 1);
+            memcpy(copy->g, req->g, g_len);
+            copy->g[g_len] = '\0';
+        }
         if(req->p != NULL)
-            mpz_set(copy->p, req->p);
+        {
+            int p_len = strlen(req->p);
+            copy->p = (char*)malloc(p_len + 1);
+            memcpy(copy->p, req->p, p_len);
+            copy->p[p_len] = '\0';
+        }
          copy_arr[i] = copy;
     }
     copy_arr[copies] = NULL;

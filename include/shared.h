@@ -9,26 +9,29 @@
 #define WEIGHT_UPDATE 5
 #define SET_FE_SECRET_KEY 6
 #define GET_PUB_KEY 7
+#define SET_SFK 8
 
-#define ENCRYPT 8
-#define NO_ENCRYPT 9
+#define ENCRYPT 9
+#define NO_ENCRYPT 10
 
-#define SCHEDULED 10
-#define COMPLETED 11
-#define IDLE 12
+#define SCHEDULED 11
+#define COMPLETED 12
+#define IDLE 13
 #define ERROR -1
+
+#define BASE 16
 
 
 #include <mutex>
 #include <condition_variable>
 #include "../app/matrix.h"
-#ifdef HAVE_SGX
-	# include <sgx_tgmp.h>
-#else
-	# include <gmp.h>
-#endif
-#include <gmpxx.h>
-#include <gmpxx.h>
+# include "sgx_tgmp.h"
+// #ifdef HAVE_SGX
+// 	# include <sgx_tgmp.h>
+// #else
+// 	# include <gmp.h>
+// #endif
+// #include <gmpxx.h>
 
 
 typedef struct wrapper
@@ -40,7 +43,7 @@ typedef struct wrapper
     int update_cols;
     int start_idx;
     int batch_size;
-    mpz_t sfk;
+    char* sfk;
 }*Wrapper;
 
 typedef struct request
@@ -66,10 +69,10 @@ typedef struct request
     // General output matrix
     Matrix output;
 
-    mpz_t p;
-    mpz_t g;
-    mpz_t final_sfk;
-    mpz_class limit;
+    char* p;
+    char* g;
+    char* final_sfk;
+    char* limit;
 
     Wrapper wp;
 

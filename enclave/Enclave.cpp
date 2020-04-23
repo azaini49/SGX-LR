@@ -3,9 +3,7 @@
 #include <vector>
 #include <mutex>
 #include "Queue.h"
-#include "../include/shared.h"
-
-
+#include <sgx_trts.h>
 
 #ifndef SUCCESS
 #define SUCCESS 1
@@ -67,18 +65,34 @@ int compute_lookup_table(Request &req)
     mpz_t tmp;
     mpz_init(tmp);
 
+    mpz_t limit_;
+    mpz_init(limit_);
+    mpz_set_str(limit_, req->limit, BASE);
+
+    mpz_t p;
+    mpz_init(p);
+    mpz_t g;
+    mpz_init(g);
+    mpz_set_str(p, req->p, BASE);
+    mpz_set_str(g, req->g, BASE);
+
+    mpz_class limit{limit_};
+
     mpz_class i = req->tid;
-    while(i < std::min(req->limit, mpz_class{req->p}))
+    while(i < std::min(limit, mpz_class{p}))
     {
-        mpz_powm(tmp, req->g, i.get_mpz_t(), req->p);
+        mpz_powm(tmp, g, i.get_mpz_t(), p);
         std::unique_lock<std::mutex> locker(gaurd);
         lookup[mpz_class{tmp}] = i;
-        mpz_invert(tmp, tmp, req->p);
+        mpz_invert(tmp, tmp, p);
         lookup[mpz_class{tmp}] = -i;
         locker.unlock();
         i = i + req->num_threads;
     }
     mpz_clear(tmp);
+    mpz_clear(p);
+    mpz_clear(g);
+    mpz_clear(limit_);
     return COMPLETED;
 }
 
@@ -250,19 +264,26 @@ int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const m
     mpz_t tmp;
     mpz_init(tmp);
 
+    mpz_t p;
+    mpz_init(p);
+    mpz_t g;
+    mpz_init(g);
+    mpz_set_str(p, req->p, BASE);
+    mpz_set_str(g, req->g, BASE);
+
     if(end == -1)
         end = dest->rows - 1;
 
     while(row < end + 1)
     {
         mpz_set(ct0, mat_element(cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, req->p);
-        mpz_invert(ct0, ct0, req->p);
+        mpz_powm(ct0, ct0, sfk, p);
+        mpz_invert(ct0, ct0, p);
         mpz_set_si(tmp, 1);
 
         mpz_mul(tmp, mat_element(compression, row, 0), ct0);
-        mpz_mod(tmp, tmp, req->p);
-        get_discrete_log(tmp,req->p);
+        mpz_mod(tmp, tmp, p);
+        get_discrete_log(tmp,p);
         if(activation == ACTIVATION)
             sigmoid(tmp, mpz_get_d(tmp));
 
@@ -276,6 +297,8 @@ int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const m
     }
     mpz_clear(tmp);
     mpz_clear(ct0);
+    mpz_clear(p);
+    mpz_clear(g);
     return COMPLETED;
 }
 
@@ -349,19 +372,34 @@ int predict_final(Request &req)
     // DECRYPT CMT!!
     if(req->output == NULL || req->compression == NULL || req->cmt == NULL)
         return ERROR;
-    return evaluate(req->output, req->compression, req->cmt, req->final_sfk, ACTIVATION, req, 0, -1, ENCRYPT);
+
+    mpz_t sfk;
+    mpz_init(sfk);
+    mpz_set_str(sfk, req->final_sfk, BASE);
+
+    int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, ENCRYPT);
+
+    // Free mpz_t
+    free(sfk);
+    return result;
 }
 
-// input_1 null
+// input_1 -> weights
 // output ypred
 int predict_train(Request &req)
 {
+    mpz_t sfk;
+    mpz_init(sfk);
+
     if(req->output == NULL || req->compression == NULL || req->cmt == NULL || req->wp == NULL || req->input_1 == NULL)
         return ERROR;
-    row_inner_product(req->wp->sfk, req->input_1, sk_1->data());
+    row_inner_product(sfk, req->input_1, sk_1->data());
 
     // DECRYPT CMT!!
-    return evaluate(req->output, req->compression, req->cmt, req->wp->sfk, ACTIVATION, req, 0, -1, NO_ENCRYPT);
+    int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, NO_ENCRYPT);
+
+    free(sfk);
+    return result;
 }
 
 /**
@@ -378,6 +416,22 @@ int setup_secret_key(Request &req)
         sk_1 = std::make_unique<Secret_Key>(req->input_1);
     else
         sk_2 = std::make_unique<Secret_Key>(req->input_1);
+    return COMPLETED;
+}
+
+/**
+ * Setup the secret function key
+ * @params : req (input_1 = weights)
+ * @return : store result in req->final_sfk
+ */
+int set_sfk(Request &req)
+{
+    if(req->input_1 == NULL)
+        return ERROR;
+    mpz_t sfk;
+    mpz_init(sfk);
+    row_inner_product(sfk, req->input_1, sk_1->data());
+    mpz_get_str(req->final_sfk, BASE, sfk);
     return COMPLETED;
 }
 
@@ -427,6 +481,11 @@ int enclave_service(void* arg)
             case SET_FE_SECRET_KEY:
             {
                 req->status = setup_secret_key(req);
+                break;
+            }
+            case SET_SFK:
+            {
+                req->status = set_sfk(req);
                 break;
             }
             case GET_PUB_KEY:

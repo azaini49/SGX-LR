@@ -1,12 +1,12 @@
 #pragma once
 
-#include <gmp.h>
+// #include <gmp.h>
 #include <gmpxx.h>
 #include "../app/matrix.h"
 #include "../app/logistic_regression.h"
 #include "../app/evaluator.h"
 #include "../app/context.h"
-#include <sgx_tgmp.h>
+#include "../include/shared.h"
 
 
 /***************************************************

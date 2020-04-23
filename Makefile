@@ -4,7 +4,7 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
-SGX_GMP ?= /usr/lib/sgx-gmp
+SGX_GMP =  /opt/gmp/6.1.2/
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -62,7 +62,7 @@ else
 endif
 
 App_Cpp_Flags := $(App_C_Flags) -std=c++14
-App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread
+App_Link_Flags := $(SGX_COMMON_CFLAGS) -L$(SGX_LIBRARY_PATH) -l$(Urts_Library_Name) -lpthread -L$(SGX_GMP)/lib -lsgx_tgmp
 
 ifneq ($(SGX_MODE), HW)
 	App_Link_Flags += -lsgx_uae_service_sim
@@ -105,13 +105,13 @@ Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++14 -nostdinc++
 #       Use `--start-group' and `--end-group' to link these libraries.
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
-Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) \
+Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) -L$(SGX_GMP)/lib -lsgx_tgmp \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
 	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
 	-Wl,--defsym,__ImageBase=0 -Wl,--gc-sections   \
-	-Wl,--version-script=enclave/Enclave.lds \
+	#-Wl,--version-script=enclave/Enclave.lds \
 
 Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
@@ -176,7 +176,7 @@ app/Enclave_u.c: $(SGX_EDGER8R) enclave/enclave.edl
 	@echo "GEN  =>  $@"
 
 app/Enclave_u.o: app/Enclave_u.c
-	@$(CC) $(App_C_Flags) -c $< -o $@
+	@$(CC) $(App_C_Flags) -I $(SGX_GMP) -c $< -o $@
 	@echo "CC   <=  $<"
 
 app/%.o: app/%.cpp
@@ -184,7 +184,7 @@ app/%.o: app/%.cpp
 	@echo "CXX  <=  $<"
 
 $(App_Name): app/Enclave_u.o $(App_Cpp_Objects)
-	@$(CXX) $^ -o $@ $(App_Link_Flags) -L$(SGX_GMP)/lib -lsgx_tgmp
+	@$(CXX) $^ -o $@ $(App_Link_Flags)
 	@echo "LINK =>  $@"
 
 .config_$(Build_Mode)_$(SGX_ARCH):
@@ -194,7 +194,7 @@ $(App_Name): app/Enclave_u.o $(App_Cpp_Objects)
 ######## Enclave Objects ########
 
 enclave/Enclave_t.c: $(SGX_EDGER8R) enclave/enclave.edl
-	@cd dnclave && $(SGX_EDGER8R) --trusted ../enclave/enclave.edl --search-path ../enclave --search-path $(SGX_SDK)/include
+	@cd enclave && $(SGX_EDGER8R) --trusted ../enclave/enclave.edl --search-path ../enclave --search-path $(SGX_SDK)/include
 	@echo "GEN  =>  $@"
 
 enclave/Enclave_t.o: enclave/Enclave_t.c

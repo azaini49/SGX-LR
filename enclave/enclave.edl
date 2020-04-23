@@ -2,6 +2,7 @@ enclave
 {
     trusted
     {
+        include "sgx_tgmp.h"
         public int enclave_service([user_check]void* task_queue);
     };
 

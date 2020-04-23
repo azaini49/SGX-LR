@@ -38,7 +38,7 @@ void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt,
     eval.compress(compression, xtest_enc, this->weights);
     
     Request req = init_request(FINAL_PREDICTION, 1);
-    mpz_set(req->final_sfk, this->sfk);
+    mpz_get_str(req->final_sfk, BASE, this->sfk);
     req->output = ypred;
     req->cmt = cmt;
     req->compression = compression;
@@ -66,6 +66,18 @@ void Logistic_Regression::compute_performance_metrics(const Matrix &ypred, const
         k = k + mpz_get_si(mat_element(diff, 0, i));
     this->accuracy = 1 - ((float)k/diff->cols);
 
+}
+
+/**
+ * Make a request to the enclave to set the function key
+ */
+void Logistic_Regression::enclave_set_sfk()
+{
+    Request req = init_request(SET_SFK, 1);
+    req->input_1 = this->weights;
+    make_request(req);
+    mpz_set_str(this->sfk, req->final_sfk, BASE);
+    free(req);
 }
 
 /**
@@ -118,8 +130,8 @@ void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Ma
     train_req->wp->batch_size = batchSize;
     train_req->wp->update_rows = xbatch->rows;
     train_req->wp->update_cols = training_error->rows;
-    mpz_set(train_req->p, this->ctx->p);
-    mpz_set(train_req->g, this->ctx->g);
+    mpz_get_str(train_req->p, BASE, this->ctx->p);
+    mpz_get_str(train_req->g, BASE, this->ctx->g);
 
     // Train for specified number of iterations
     for(int step = 0; step < this->iterations; step++)

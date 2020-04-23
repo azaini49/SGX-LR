@@ -1,6 +1,7 @@
 #pragma once
-#include <gmp.h>
-#include <gmpxx.h>
+// #include <gmp.h>
+// #include <gmpxx.h>
+#include "sgx_tgmp.h"
 #include "matrix.h"
 #include <memory>
 

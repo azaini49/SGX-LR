@@ -124,8 +124,8 @@ int main(int argc, char const *argv[])
 
     // Make a request to setup the lookup table for discrete log
     Request req = init_request(GENERATE_LOOKUP_TABLE, 1);
-    mpz_set(req->p, ctx->p);
-    mpz_set(req->g, ctx->g);
+    mpz_get_str(req->p, BASE, ctx->p);
+    mpz_get_str(req->g, BASE, ctx->g);
     make_request(req);
 
     // Generate pk and sk to encrypt xtrain and xtest

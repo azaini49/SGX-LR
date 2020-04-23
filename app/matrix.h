@@ -2,9 +2,9 @@
 
 // #include <stdbool.h>
 // #include <gmp.h>
-// #include <gmpxx.h>
-// #include <vector>
-// #include <iostream>
+#include <gmpxx.h>
+#include <vector>
+#include <iostream>
 
 // #define mat_element(mat, row_idx, col_idx) mat->data[row_idx * (mat->cols) + col_idx]
 // #define mat_element2(mat, row_idx, col_idx) mat.data[row_idx * (mat.cols) + col_idx]
@@ -53,12 +53,13 @@
 // };
 
 #include <stdbool.h>
-#ifdef HAVE_SGX
-	# include <sgx_tgmp.h>
-#else
-	# include <gmp.h>
-#endif
+// #ifdef HAVE_SGX
+// 	# include <sgx_tgmp.h>
+// #else
+// 	# include <gmp.h>
+// #endif
 #include <gmpxx.h>
+#include "sgx_tgmp.h"
 
 #ifndef _MATRIX_H
 #define _MATRIX_H
