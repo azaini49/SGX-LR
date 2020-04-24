@@ -53,13 +53,13 @@ int main(int argc, char const *argv[])
     std::string dir;
     if(argc != 2)
     {
-        std::cout << "Usage: ./testLR trainDir\n";
+        std::cout << "Usage: ./app_lr trainDir\n";
         exit(-1); 
     }
     dir = argv[1];
 
     // Get csv contents containing train data
-    std::string trainFile = dir + "/train.csv";
+    std::string trainFile(dir + "/train.csv");
     std::vector<std::vector<int> > xtrain;
     readFile(trainFile, xtrain);
     std::cout << "Read train data.\n";

@@ -10,6 +10,8 @@
 #include "../tools/matrix_shared.h"
 #include "../tools/secret_key.h"
 #include "../tools/gmpxx.h"
+#include "../include/Queue.h"
+#include "../include/sync_utils.hpp"
 
 #include <stdlib.h> /* for size_t */
 

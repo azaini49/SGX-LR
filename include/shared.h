@@ -22,10 +22,10 @@
 #define BASE 16
 
 
-#include <mutex>
-#include <condition_variable>
+//#include <mutex>
+//#include <condition_variable>
 #include "../tools/matrix_shared.h"
-# include "../tools/sgx_tgmp.h"
+#include "../tools/sgx_tgmp.h"
 // #ifdef HAVE_SGX
 // 	# include <sgx_tgmp.h>
 // #else

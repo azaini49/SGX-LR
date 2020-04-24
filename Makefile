@@ -4,7 +4,7 @@ SGX_SDK ?= /opt/intel/sgxsdk
 SGX_MODE ?= HW
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
-SGX_GMP =  /opt/gmp/6.1.2
+SGX_GMP = /opt/gmp/6.1.2
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -45,7 +45,7 @@ else
 endif
 
 App_Cpp_Files := $(wildcard app/*.cpp) $(wildcard tools/*.cpp)
-App_Include_Paths :=  -I app -I $(wildcard include) -I $(SGX_SDK)/include -I $(SGX_GMP)/include 
+App_Include_Paths :=  -I app -I include -I tools -I $(SGX_SDK)/include -I $(SGX_GMP)/include 
 
 App_C_Flags := $(SGX_COMMON_CFLAGS) -fPIC -Wno-attributes $(App_Include_Paths)
 
@@ -86,7 +86,7 @@ endif
 Crypto_Library_Name := sgx_tcrypto
 
 Enclave_Cpp_Files := $(wildcard enclave/*.cpp) $(wildcard tools/*.cpp)
-Enclave_Include_Paths := -I include -I enclave -I $(SGX_SDK)/include -I $(SGX_SDK)/include/tlibc -I $(SGX_SDK)/include/libcxx -I $(SGX_GMP)/include
+Enclave_Include_Paths := -I include -I enclave -I tools -I $(SGX_SDK)/include -I $(SGX_SDK)/include/tlibc -I $(SGX_SDK)/include/libcxx -I $(SGX_GMP)/include
 
 CC_BELOW_4_9 := $(shell expr "`$(CC) -dumpversion`" \< "4.9")
 ifeq ($(CC_BELOW_4_9), 1)
@@ -96,7 +96,7 @@ else
 endif
 
 Enclave_C_Flags += $(Enclave_Include_Paths)
-Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++14 -nostdinc++
+Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++11 -nostdinc++
 
 # To generate a proper enclave, it is recommended to follow below guideline to link the trusted libraries:
 #    1. Link sgx_trts with the `--whole-archive' and `--no-whole-archive' options,
@@ -105,18 +105,15 @@ Enclave_Cpp_Flags := $(Enclave_C_Flags) -std=c++14 -nostdinc++
 #       Use `--start-group' and `--end-group' to link these libraries.
 # Do NOT move the libraries linked with `--start-group' and `--end-group' within `--whole-archive' and `--no-whole-archive' options.
 # Otherwise, you may get some undesirable errors.
-Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) -L$(SGX_GMP)/lib -lsgx_tgmp \
+Enclave_Link_Flags := $(SGX_COMMON_CFLAGS) -Wl,--no-undefined -nostdlib -nodefaultlibs -nostartfiles -L$(SGX_LIBRARY_PATH) -L$(SGX_GMP)/lib \
 	-Wl,--whole-archive -l$(Trts_Library_Name) -Wl,--no-whole-archive \
-	-Wl,--start-group -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
+	-Wl,--start-group -lsgx_tgmp -lsgx_tstdc -lsgx_tcxx -l$(Crypto_Library_Name) -l$(Service_Library_Name) -Wl,--end-group \
 	-Wl,-Bstatic -Wl,-Bsymbolic -Wl,--no-undefined \
 	-Wl,-pie,-eenclave_entry -Wl,--export-dynamic  \
 	-Wl,--defsym,__ImageBase=0 -Wl,--gc-sections   \
-	-Wl,--version-script=enclave/Enclave.lds \
+	-Wl,--version-script=enclave/enclave.lds \
 
-Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o) $(tools:.cpp=.o)
-
-# ASM_SRCS := $(wildcard tools/*.S)
-# ASM_OBJS := $(ASM_SRCS:.S=.o)
+Enclave_Cpp_Objects := $(Enclave_Cpp_Files:.cpp=.o)
 
 Enclave_Name := enclave.so
 Signed_Enclave_Name := enclave.signed.so
@@ -182,6 +179,10 @@ app/enclave_u.o: app/enclave_u.c
 	@$(CXX) $(App_C_Flags) -I $(SGX_GMP) -c $< -o $@
 	@echo "CXX   <=  $<"
 
+tools/%.o: tools/%.cpp
+	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
+	@echo "CXX  <=  $<"
+
 app/%.o: app/%.cpp
 	@$(CXX) $(App_Cpp_Flags) -c $< -o $@
 	@echo "CXX  <=  $<"
@@ -204,10 +205,6 @@ enclave/enclave_t.c: $(SGX_EDGER8R) enclave/enclave.edl
 enclave/enclave_t.o: enclave/enclave_t.c
 	@$(CXX) $(Enclave_C_Flags) -c $< -o $@
 	@echo "CXX   <=  $<"
-
-# $(ASM_OBJS): %.o: %.S
-# 	@nasm -f elf64 $< -o $@
-# 	@echo "NASM  <=  $<"
 
 enclave/%.o: enclave/%.cpp
 	@$(CXX) $(Enclave_Cpp_Flags) -c $< -o $@

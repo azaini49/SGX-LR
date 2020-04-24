@@ -3,8 +3,9 @@
 #include <fstream>
 #include <math.h>
 #include <iostream>
-#include "../enclave/Queue.h"
-#include <mutex>
+#include "../include/Queue.h"
+//#include <mutex>
+#include "../include/sync_utils.hpp"
 
 
 extern Queue* task_queue;
@@ -19,12 +20,22 @@ void make_request(Request &req)
     //     task_queue->enqueue(req);
     // }
     task_queue->enqueue(req);
-    while(req->status != COMPLETED);
-
-    if(req->status == ERROR)
+    while(true)
     {
-        std::cout << "One or more attributs of request might be null!\n";
-        exit(EXIT_FAILURE);
+        if(req->status != COMPLETED || req->status != ERROR)
+            __asm__("pause");
+        else
+        {
+            std::cout << "[" << req->job_id << "] : " << req->status << std::endl;
+            if(req->status == ERROR)
+            {
+                spin_unlock(&req->status);
+                std::cout << "One or more attributs of request might be null!\n";
+                exit(EXIT_FAILURE);
+            }
+            spin_unlock(&req->status);
+            break;
+        }
     }
 
     // Reset request. Do not free data!!

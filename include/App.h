@@ -7,7 +7,7 @@ extern sgx_enclave_id_t global_eid;
 
 #include "enclave_init.h"
 #include <iostream>
-#include "../enclave/Queue.h"
+#include "Queue.h"
 #include "helper.h"
 #include <thread>
 #include "../app/logistic_regression.h"

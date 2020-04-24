@@ -1,9 +1,9 @@
 #pragma once
 
 #include <stdlib.h>
-#include <queue>
-#include <mutex>
-#include <condition_variable>
+//#include <queue>
+// #include <mutex>
+// #include <condition_variable>
 #include "../include/shared.h"
 
 class Queue

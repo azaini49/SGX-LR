@@ -6,6 +6,8 @@ enclave
         include "../tools/matrix_shared.h"
         include "../tools/secret_key.h"
         include "../tools/gmpxx.h"
+        include "../include/Queue.h"
+        include "../include/sync_utils.hpp"
 
         public int enclave_service([user_check]void* task_queue);
     };

@@ -52,7 +52,7 @@
 // };
 
 #include <stdbool.h>
-#include "sgx_tgmp.h"
+#include "../tools/sgx_tgmp.h"
 #include "../tools/matrix_shared.h"
 
 void setMatrix(Matrix A, mpz_t x);
