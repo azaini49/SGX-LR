@@ -2,12 +2,10 @@
 
 // #include <gmp.h>
 #include "../tools/sgx_tgmp.h"
-#include "../tools/matrix.h"
-#include "../app/logistic_regression.h"
-#include "../app/evaluator.h"
-#include "../app/context.h"
+#include "../tools/matrix_shared.h"
 #include "../include/shared.h"
 #include "../tools/secret_key.h"
+#include "../tools/gmpxx.h"
 
 
 /***************************************************
@@ -26,16 +24,18 @@
 #define ERR_FAIL_UNSEAL 10
 
 // Store the secret keys in the enclave
-Secret_Key *sk_1;
-Secret_Key *sk_2;
+Secret_Key sk_1;
+Secret_Key sk_2;
 
+#define ACTIVATION 0
+#define NO_ACTIVATION 1
 
 struct MapComp
 {
-    bool operator() (const mpz_t a, const mpz_t b) const
+    bool operator() (const mpz_class a, const mpz_class b) const
     {
-        int flag = mpz_cmp(a, b);
-        if(flag < 0)
+        //int flag = mpz_cmp(a, b);
+        if(a < b)
             return true;
         return false;
     }

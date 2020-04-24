@@ -85,7 +85,7 @@ else
 endif
 Crypto_Library_Name := sgx_tcrypto
 
-Enclave_Cpp_Files := $(wildcard enclave/*.cpp) #$(wildcard tools/*.cpp)
+Enclave_Cpp_Files := $(wildcard enclave/*.cpp) $(wildcard tools/*.cpp)
 Enclave_Include_Paths := -I include -I enclave -I $(SGX_SDK)/include -I $(SGX_SDK)/include/tlibc -I $(SGX_SDK)/include/libcxx -I $(SGX_GMP)/include
 
 CC_BELOW_4_9 := $(shell expr "`$(CC) -dumpversion`" \< "4.9")
@@ -225,4 +225,4 @@ $(Signed_Enclave_Name): $(Enclave_Name)
 .PHONY: clean
 
 clean:
-	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) app/enclave_u.* $(Enclave_Cpp_Objects) enclave/enclave_t.*
+	@rm -f .config_* $(App_Name) $(Enclave_Name) $(Signed_Enclave_Name) $(App_Cpp_Objects) app/enclave_u.* $(Enclave_Cpp_Objects) enclave/enclave_t.* app/*.o tools/*.o enclave/*.o

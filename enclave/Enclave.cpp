@@ -2,12 +2,8 @@
 #include "enclave_t.h"
 #include <math.h>
 #include <vector>
-//#include <gmpxx.h>
-//#include <mutex>
 #include "Queue.h"
-#include "../tools/sgx_tgmp.h"
-#include "../tools/gmpxx.h"
-#include <mutex>
+//#include <mutex>
 #include <map>
 #include <condition_variable>
 
@@ -20,7 +16,7 @@
 #endif
 
 //std::mutex gaurd;
-static std::map<mpz_t, mpz_t> lookup;
+static std::map<mpz_class, mpz_class> lookup;
 
 // Compute the sigmoid and round to nearest integer
 int sigmoid(mpz_t res, double x)
@@ -43,19 +39,21 @@ int sigmoid(mpz_t res, double x)
 // Straight forward lookup in lookup table to get discrete log value
 int get_discrete_log(mpz_t &x, mpz_t p)
 {
-    std::map<mpz_t, mpz_t, MapComp>::iterator it = lookup.find(x);
+    mpz_class key{x};
+    std::map<mpz_class, mpz_class, MapComp>::iterator it = lookup.find(key);
     if(it == lookup.end())
     {
         mpz_invert(x, x, p);
-        it = lookup.find(x);
+        mpz_class key{x};
+        it = lookup.find(key);
         if(it == lookup.end())
             mpz_set_si(x, -1);
         else
-            mpz_mul_si(x, it->second, -1);
+            mpz_mul_si(x, it->second.get_mpz_t(), -1);
     }
     else
     {
-        mpz_set(x, it->second);
+        mpz_set(x, it->second.get_mpz_t());
     }
     return COMPLETED;
 }
@@ -65,17 +63,8 @@ int get_discrete_log(mpz_t &x, mpz_t p)
  */
 int compute_lookup_table(Request &req)
 {
-    // Temporary variable
     mpz_t tmp;
     mpz_init(tmp);
-
-    mpz_t limit_;
-    mpz_init(limit_);
-    mpz_ui_pow_ui(limit_, 2, req->limit);
-
-    mpz_t i;
-    mpz_init(i);
-    mpz_set_si(i, req->tid);
 
     mpz_t p;
     mpz_init(p);
@@ -84,20 +73,19 @@ int compute_lookup_table(Request &req)
     mpz_set_str(p, req->p, BASE);
     mpz_set_str(g, req->g, BASE);
 
-    while(mpz_cmp(limit_, i) >= 0)
+    mpz_class i = req->tid;
+    mpz_class limit = pow(2, req->limit);
+    while(i < limit)
     {
-        mpz_powm(tmp, g, i, p);
+        mpz_powm(tmp, g, i.get_mpz_t(), p);
         //std::unique_lock<std::mutex> locker(gaurd);
-        mpz_set(lookup[tmp], i);
+        lookup[mpz_class{tmp}] = i;
         mpz_invert(tmp, tmp, p);
-        mpz_set_si(lookup[tmp], -mpz_get_si(i));
+        lookup[mpz_class{tmp}] = -i;
         //locker.unlock();
-        mpz_add_ui(i, i, 1);
+        i = i + req->num_threads;
     }
     mpz_clear(tmp);
-    mpz_clear(p);
-    mpz_clear(g);
-    mpz_clear(limit_);
     return COMPLETED;
 }
 
@@ -322,7 +310,7 @@ int update_weights(Request &req)
     Matrix update_trans = mat_init(req->input_1->cols, req->input_1->rows);
     
     // Compute update to be made
-    row_inner_product(sfk_update, sk_2->data(), req->wp->training_error, -1, 0, 0, req->wp->start_idx, req->wp->start_idx + req->wp->batch_size - 1);
+    row_inner_product(sfk_update, sk_2.data(), req->wp->training_error, -1, 0, 0, req->wp->start_idx, req->wp->start_idx + req->wp->batch_size - 1);
     evaluate(update, req->compression, req->cmt, sfk_update, NO_ACTIVATION, req, 0, -1, NO_ENCRYPT);
     transpose(update_trans, update);
 
@@ -403,7 +391,7 @@ int predict_train(Request &req)
 
     if(req->output == NULL || req->compression == NULL || req->cmt == NULL || req->wp == NULL || req->input_1 == NULL)
         return ERROR;
-    row_inner_product(sfk, req->input_1, sk_1->data());
+    row_inner_product(sfk, req->input_1, sk_1.data());
 
     // DECRYPT CMT!!
     int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, NO_ENCRYPT);
@@ -423,9 +411,9 @@ int setup_secret_key(Request &req)
     if(req->input_1 == NULL || req->key_id < 1 || req->key_id > 2)
         return ERROR;
     if(req->key_id == 1)
-        sk_1 = new Secret_Key(req->input_1);
+        sk_1.set_key(req->input_1);
     else
-        sk_2 = new Secret_Key(req->input_1);
+        sk_2.set_key(req->input_1);
     return COMPLETED;
 }
 
@@ -440,7 +428,7 @@ int set_sfk(Request &req)
         return ERROR;
     mpz_t sfk;
     mpz_init(sfk);
-    row_inner_product(sfk, req->input_1, sk_1->data());
+    row_inner_product(sfk, req->input_1, sk_1.data());
     mpz_get_str(req->final_sfk, BASE, sfk);
     return COMPLETED;
 }

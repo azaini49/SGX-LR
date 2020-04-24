@@ -1,7 +1,7 @@
 #pragma once
 
 #include "context.h"
-#include "../tools/matrix.h"
+#include "matrix.h"
 
 #define ACTIVATION 0
 #define NO_ACTIVATION 1

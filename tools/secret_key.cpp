@@ -15,10 +15,10 @@ Secret_Key::Secret_Key(const Secret_Key &copy)
     mat_copy(this->data_, copy.data_);
 }
 
-Secret_Key::Secret_Key(const Matrix &data)
+Secret_Key::Secret_Key(const Matrix data)
 {
-    if(data->rows != 1)
-        throw std::invalid_argument("Invalid Dimensions! Data dimension should be 1 x n");
+    // if(data->rows != 1)
+    //     throw std::invalid_argument("Invalid Dimensions! Data dimension should be 1 x n");
     this->key_len = data->cols;
     this->data_= mat_init(1, key_len);
     mat_copy(this->data_, data);
@@ -35,6 +35,13 @@ void Secret_Key::init(int key_len)
     this->data_= mat_init(1, key_len);
 }
 
+void Secret_Key::set_key(const Matrix data)
+{
+    this->key_len = data->cols;
+    this->data_= mat_init(1, key_len);
+    mat_copy(this->data_, data);
+}
+
 int Secret_Key::length()
 {
     return this->key_len;
@@ -42,10 +49,10 @@ int Secret_Key::length()
 
 void Secret_Key::print()
 {
-    print_matrix(this->data_);
+    //print_matrix(this->data_);
 }
 
-const Matrix &Secret_Key::data() const
+const Matrix Secret_Key::data() const
 {
     return this->data_;
 }

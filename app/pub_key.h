@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../tools/matrix.h"
+#include "matrix.h"
 #include "context.h"
 
 class Public_Key

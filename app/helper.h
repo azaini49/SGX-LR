@@ -6,7 +6,7 @@
 #include <map>
 #include <vector>
 #include "evaluator.h"
-#include "../tools/matrix.h"
+#include "matrix.h"
 #include "../include/shared.h"
 
 void make_request(Request &req);

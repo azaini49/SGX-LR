@@ -2,7 +2,7 @@
 
 #include "context.h"
 #include "evaluator.h"
-#include "../tools/matrix.h"
+#include "matrix.h"
 
 class Logistic_Regression
 {

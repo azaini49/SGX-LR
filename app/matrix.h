@@ -52,33 +52,10 @@
 // };
 
 #include <stdbool.h>
-// #ifdef HAVE_SGX
-// 	# include <sgx_tgmp.h>
-// #else
-// 	# include <gmp.h>
-// #endif
-//#include <gmpxx.h>
 #include "sgx_tgmp.h"
+#include "../tools/matrix_shared.h"
 
-#ifndef _MATRIX_H
-#define _MATRIX_H
-
-#define mat_element(mat, row_idx, col_idx) mat->data[row_idx * (mat->cols) + col_idx]
-typedef struct matrix
-{
-   int rows;             //number of rows.
-   int cols;             //number of columns.
-   mpz_t *data;
-}*Matrix;
-
-Matrix mat_init(int rows, int cols);
 void setMatrix(Matrix A, mpz_t x);
-void get_matrix_element(mpz_t result, Matrix mat, int row_idx, int col_idx);
-void set_matrix_element(Matrix A, int row_idx, int col_idx, mpz_t val);
-void set_matrix_row(Matrix A, int row, mpz_t* vec);
-void delete_matrix(Matrix A);
-void transpose(Matrix B, Matrix A, int row1 = 0, int row2 = -1, int col1 = 0, int col2 = -1);
-void mat_copy(Matrix B, Matrix A);
 void add_rows(Matrix A,int row1, int row2);
 Matrix add_rows_new(Matrix A,int row1, int row2, int i1, int i2);
 Matrix add_cols(Matrix A,int col1, int col2, int a, int b);
@@ -95,8 +72,5 @@ void mat_splice(Matrix &dest, Matrix &src, int first_row_s, int last_row_s, int 
 Matrix concat_horizontal(Matrix A, Matrix B);
 Matrix concat_vertical(Matrix A, Matrix B);
 void matrix_mod(Matrix res, Matrix A, mpz_t mod);
-void row_inner_product(mpz_t result, const Matrix &A, const Matrix &B, int mod = -1, int rowIdx_A = 0, int rowIdx_B = -1, int colBegin_A = 0, int colEnd_A = -1, int colBegin_B = 0, int colEnd_B = -1);
 void inner_product(Matrix& result, Matrix& A, Matrix& B, int mod = -1);
 void print_matrix(Matrix A, int r1 = 0, int r2 = -1, int c1 = 0, int c2 = -1);
-
-#endif
