@@ -2,7 +2,6 @@
 // #include <gmp.h>
 // #include <gmpxx.h>
 #include "../tools/sgx_tgmp.h"
-#include "matrix.h"
 #include <memory>
 
 class Context

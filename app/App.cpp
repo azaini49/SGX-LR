@@ -1,6 +1,6 @@
 #include "../include/App.h"
 #include "sgx_urts.h"
-#include "Enclave_u.h"
+#include "enclave_u.h"
 
 
 /* Global EID shared by multiple threads */

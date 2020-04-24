@@ -1,9 +1,15 @@
 #include "Enclave.h"
+#include "enclave_t.h"
 #include <math.h>
 #include <vector>
-#include <mutex>
+//#include <gmpxx.h>
+//#include <mutex>
 #include "Queue.h"
 #include "../tools/sgx_tgmp.h"
+#include "../tools/gmpxx.h"
+#include <mutex>
+#include <map>
+#include <condition_variable>
 
 #ifndef SUCCESS
 #define SUCCESS 1
@@ -13,7 +19,7 @@
 #define FAILURE -1
 #endif
 
-std::mutex gaurd;
+//std::mutex gaurd;
 static std::map<mpz_t, mpz_t> lookup;
 
 // Compute the sigmoid and round to nearest integer
@@ -81,11 +87,11 @@ int compute_lookup_table(Request &req)
     while(mpz_cmp(limit_, i) >= 0)
     {
         mpz_powm(tmp, g, i, p);
-        std::unique_lock<std::mutex> locker(gaurd);
+        //std::unique_lock<std::mutex> locker(gaurd);
         mpz_set(lookup[tmp], i);
         mpz_invert(tmp, tmp, p);
         mpz_set_si(lookup[tmp], -mpz_get_si(i));
-        locker.unlock();
+        //locker.unlock();
         mpz_add_ui(i, i, 1);
     }
     mpz_clear(tmp);
@@ -327,16 +333,21 @@ int update_weights(Request &req)
     mpz_t wt_tmp;
     mpz_init(wt_tmp);
 
+    // mpf_t tmp;
+    // mpf_init(tmp);
+    mpf_class tmp;
+
     try
     {
         while(col < req->output->cols)
         {
             mpz_set(wt_tmp, mat_element(req->output, 0, col));
             mpf_class tmp = ((mpz_get_si(wt_tmp)* req->wp->alpha) + mpz_get_si(mat_element(update_trans, 0 ,col)))*req->wp->learning_rate;
+            //mpf_set(tmp, ((mpz_get_si(wt_tmp)* req->wp->alpha) + mpz_get_si(mat_element(update_trans, 0 ,col)))*req->wp->learning_rate);
             mpz_set_si(x, 0);
-            if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) > 0)
+            if(mpf_cmp_si(tmp.get_mpf_t(), 0.0))
             {
-                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) > 0)
+                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d() > 0))
                     mpz_set_si(x, tmp.get_d() + 1);
                 else
                     mpz_set_si(x, tmp.get_d());
@@ -412,9 +423,9 @@ int setup_secret_key(Request &req)
     if(req->input_1 == NULL || req->key_id < 1 || req->key_id > 2)
         return ERROR;
     if(req->key_id == 1)
-        sk_1 = std::make_unique<Secret_Key>(req->input_1);
+        sk_1 = new Secret_Key(req->input_1);
     else
-        sk_2 = std::make_unique<Secret_Key>(req->input_1);
+        sk_2 = new Secret_Key(req->input_1);
     return COMPLETED;
 }
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "pub_key.h"
+#include "../tools/matrix.h"
 
 class Encryptor
 {

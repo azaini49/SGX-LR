@@ -1,5 +1,4 @@
 #include "pub_key.h"
-#include "matrix.h"
 
 Public_Key::Public_Key(){}
 

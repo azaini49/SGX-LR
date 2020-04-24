@@ -1,7 +1,6 @@
 #include "context.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "secret_key.h"
 
 /*
  * Default private constructor to initialize the context object

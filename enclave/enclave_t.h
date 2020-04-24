@@ -7,8 +7,9 @@
 #include "sgx_edger8r.h" /* for sgx_ocall etc. */
 
 #include "../tools/sgx_tgmp.h"
-#include "../app/matrix.h"
-#include "../app/Secret_Key.h"
+#include "../tools/matrix.h"
+#include "../tools/secret_key.h"
+#include "../tools/gmpxx.h"
 
 #include <stdlib.h> /* for size_t */
 

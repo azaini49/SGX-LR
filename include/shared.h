@@ -24,7 +24,7 @@
 
 #include <mutex>
 #include <condition_variable>
-#include "../app/matrix.h"
+#include "../tools/matrix.h"
 # include "../tools/sgx_tgmp.h"
 // #ifdef HAVE_SGX
 // 	# include <sgx_tgmp.h>

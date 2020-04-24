@@ -1,5 +1,5 @@
 #include "../include/shared.h"
-#include "../app/matrix.h"
+#include "matrix.h"
 #include <string.h>
 
 Wrapper init_wrapper(float alpha, float learning_rate)

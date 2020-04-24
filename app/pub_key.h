@@ -1,8 +1,7 @@
 #pragma once
 
-#include "matrix.h"
+#include "../tools/matrix.h"
 #include "context.h"
-#include "secret_key.h"
 
 class Public_Key
 {

@@ -46,3 +46,29 @@ Request Queue::dequeue()
 
     return result;
 }
+
+// Queue::Queue(){};
+
+// void Queue::enqueue(Request x)
+// {
+//     std::unique_lock<std::mutex> locker(gaurd);
+//     arr.push(x);
+//     cond.notify_all();
+// }
+
+// Request Queue::dequeue()
+// {
+//     std::unique_lock<std::mutex> locker(gaurd);
+//     while(arr.size() == 0)
+//         cond.wait(locker);
+//     Request ans = arr.front();
+//     arr.pop();
+//     cond.notify_all();
+//     return ans;
+// }
+
+// int Queue::size()
+// {
+//     std::unique_lock<std::mutex> locker(gaurd);
+//     return arr.size();
+// }

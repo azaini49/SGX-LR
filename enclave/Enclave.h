@@ -2,11 +2,12 @@
 
 // #include <gmp.h>
 #include "../tools/sgx_tgmp.h"
-#include "../app/matrix.h"
+#include "../tools/matrix.h"
 #include "../app/logistic_regression.h"
 #include "../app/evaluator.h"
 #include "../app/context.h"
 #include "../include/shared.h"
+#include "../tools/secret_key.h"
 
 
 /***************************************************
@@ -25,8 +26,8 @@
 #define ERR_FAIL_UNSEAL 10
 
 // Store the secret keys in the enclave
-std::unique_ptr<Secret_Key> sk_1;
-std::unique_ptr<Secret_Key> sk_2;
+Secret_Key *sk_1;
+Secret_Key *sk_2;
 
 
 struct MapComp

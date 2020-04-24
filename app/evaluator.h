@@ -1,8 +1,7 @@
 #pragma once
 
 #include "context.h"
-#include "secret_key.h"
-#include <map>
+#include "../tools/matrix.h"
 
 #define ACTIVATION 0
 #define NO_ACTIVATION 1

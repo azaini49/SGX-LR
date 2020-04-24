@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <queue>
 #include <mutex>
+#include <condition_variable>
 #include "../include/shared.h"
 
 class Queue
@@ -19,3 +20,19 @@ class Queue
     Request q[queue_size];
     int volatile _lock;
 };
+
+// #include <queue>
+
+// class Queue
+// {
+//     private:
+//         std::queue<Request> arr;
+//         std::mutex gaurd;
+//         std::condition_variable cond;   
+
+//     public:
+//         Queue();
+//         void enqueue(Request x);
+//         Request dequeue();
+//         int size();
+// };

@@ -471,7 +471,9 @@ typedef __mpq_struct *mpq_ptr;
 
 #if defined (__cplusplus)
 extern "C" {
+#ifdef _GMP_H_HAVE_FILE
 using std::FILE;
+#endif
 #endif
 
 #define mp_set_memory_functions __gmp_set_memory_functions
@@ -2279,14 +2281,14 @@ mpn_neg (mp_ptr __gmp_rp, mp_srcptr __gmp_up, mp_size_t __gmp_n)
 
 /**************** C++ routines ****************/
 
-#ifdef __cplusplus
-__GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpz_srcptr);
-__GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpq_srcptr);
-__GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpf_srcptr);
-__GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpz_ptr);
-__GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpq_ptr);
-__GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpf_ptr);
-#endif
+// #ifdef __cplusplus
+// __GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpz_srcptr);
+// __GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpq_srcptr);
+// __GMP_DECLSPEC_XX std::ostream& operator<< (std::ostream &, mpf_srcptr);
+// __GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpz_ptr);
+// __GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpq_ptr);
+// __GMP_DECLSPEC_XX std::istream& operator>> (std::istream &, mpf_ptr);
+// #endif
 
 
 /* Source-level compatibility with GMP 2 and earlier. */

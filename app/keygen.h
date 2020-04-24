@@ -1,8 +1,7 @@
 #pragma once
 
-#include "matrix.h"
 #include "context.h"
-#include "secret_key.h"
+#include "../tools/secret_key.h"
 #include "pub_key.h"
 
 class Keygen
