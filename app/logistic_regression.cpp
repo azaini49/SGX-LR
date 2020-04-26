@@ -32,7 +32,7 @@ Logistic_Regression::~Logistic_Regression()
  * @params : encrypted input, encrypted cmt, evaluator
  * @return : store result in ypred
  */
-void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt, Evaluator &eval)
+void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval)
 {
     Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
@@ -47,7 +47,7 @@ void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt,
  * Compute accuracy
  * TODO : Compute precision, recall, f1 score
  */
-void Logistic_Regression::compute_performance_metrics(const Matrix &ypred, const Matrix &ytrue)
+void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const Matrix ytrue)
 {
     if(ypred->cols != ytrue->cols || ypred->rows != ytrue->rows)
     {
@@ -79,7 +79,7 @@ void Logistic_Regression::enclave_set_sfk()
 /**
  * Train the model in given inputs to obtain model parameters
  */
-void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Matrix &ytrain, Matrix &cmt_xtrain, Matrix &cmt_xtrain_trans, int batchSize, float learning_rate)
+void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate)
 {
     // Check input dimensions (ytrain includes an extra col for the commitment)
     if(xtrain_enc->rows != ytrain->cols || ytrain->rows != 1)
