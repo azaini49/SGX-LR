@@ -10,7 +10,7 @@ Matrix mat_init(int rows, int cols)
     return NULL;
   }
   Matrix A;
-  A = (Matrix)malloc(sizeof(struct matrix));
+  A = (Matrix)malloc(sizeof(Matrix) + rows*cols*sizeof(mpz_t));
   A->cols = cols;
   A->rows = rows; 
   A->data = (mpz_t *)malloc(rows*cols*sizeof(mpz_t)); 
@@ -78,7 +78,7 @@ void delete_matrix(Matrix A)
 }
 
 //Set B as transpose of A
-void transpose(Matrix B, Matrix A, int row1, int row2, int col1, int col2)
+int transpose(Matrix B, Matrix A, int row1, int row2, int col1, int col2)
 {
   if(row2 == -1)
     row2 = A->rows - 1;
@@ -87,6 +87,7 @@ void transpose(Matrix B, Matrix A, int row1, int row2, int col1, int col2)
 
   if(B->rows != (col2 - col1 + 1) || B->cols != (row2 - row1 + 1))
   {
+    return -1;
     // std::cout << "r2 - r1 + 1 : " << row2 - row1 + 1 << std::endl;
     // std::cout << "c2 - c1 + 1 : " << col2 - col1 + 1 << std::endl;
     // std::cout << "Error: Incompatible matrix dimensions.\n";

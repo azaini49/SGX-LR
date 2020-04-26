@@ -9,6 +9,8 @@
 #include "matrix.h"
 #include "../include/shared.h"
 
+
+
 void make_request(Request &req);
 void compute_hamming_distance(Matrix &res, const Matrix &A, const Matrix &B, int row = 0, int A_c1 = 0, int A_c2 = -1, int B_c1 = 0, int B_c2 = -1);
 void compute_vector_difference(Matrix &res, const Matrix &A, const Matrix &B, int row = 0, int A_c1 = 0, int A_c2 = -1, int B_c1 = 0, int B_c2 = -1);

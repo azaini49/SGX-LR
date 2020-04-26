@@ -12,17 +12,12 @@ extern Queue* task_queue;
 
 void make_request(Request &req)
 {
-    // std::unique_lock<std::mutex> locker(req->gaurd);
-    // Request* requests = make_request_copy(req);
-    // for(int i = 0; i < req->num_threads; i++)
-    // {
-    //     //req->tid = i
-    //     task_queue->enqueue(req);
-    // }
+    std::cout << "Making request : " << req->job_id << std::endl;
+    req->status = SCHEDULED;
     task_queue->enqueue(req);
     while(true)
     {
-        if(req->status != COMPLETED || req->status != ERROR)
+        if(req->status == SCHEDULED)
             __asm__("pause");
         else
         {
@@ -36,14 +31,14 @@ void make_request(Request &req)
             spin_unlock(&req->status);
             break;
         }
+        // else
+        // {
+        //     __asm__("pause");
+        // }
     }
-
     // Reset request. Do not free data!!
     req->status = IDLE;
-    req->input_1 = NULL;
-    req->output = NULL;
-    req->compression = NULL;
-    req->cmt = NULL;
+    //free(req);
 }
 
 /**

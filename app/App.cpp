@@ -1,7 +1,6 @@
-#include "../include/App.h"
-#include "sgx_urts.h"
-#include "enclave_u.h"
-
+#include "App.h"
+#include <inttypes.h>
+#include <string>
 
 /* Global EID shared by multiple threads */
 extern sgx_enclave_id_t global_eid;
@@ -34,14 +33,75 @@ int launch_enclave()
     return enclave_status;
 }
 
+/* OCall functions */
+void ocall_print_string(const char *str)
+{
+    /* Proxy/Bridge will check the length and null-terminate 
+     * the input string to prevent buffer overflow. 
+     */
+    printf("%s", str);
+}
+
+void ocall_print_matrix(const char* serial)
+{
+    Matrix m = deserialize_matrix(serial);
+    print_matrix(m);
+}
+
 int main(int argc, char const *argv[])
 {
 
+    std::string dir;
+    if(argc < 2)
+    {
+        // std::cout << "Usage: ./app_lr trainDir\n";
+        // exit(-1); 
+        dir = "../Lingspam";
+    }
+    else
+        dir = argv[1];
+
+    if(dir.compare("test1") == 0)
+    {
+         Matrix A = mat_init(5, 5);
+        generate_random_matrix(A);
+        char* serialized_str = serialize_matrix(A);
+        Matrix B = deserialize_matrix(serialized_str);
+        if(mat_is_equal(A, B))
+            std::cout << "SUCCESS\n";
+        else
+            std::cout << "FAILURE\n";
+        return 0;
+    }
+    
+    // Launch enclave
     int enclave_status = launch_enclave();
     if(enclave_status != SGX_SUCCESS)
     {
         std::cout << "Failed to launch enclave. Exiting...\n";
         exit(EXIT_FAILURE); 
+    }
+    
+    
+    if(dir.compare("test2") == 0)
+    {
+        Matrix inp = mat_init(1, 3);
+        Matrix out = mat_init(1, 3);
+        Matrix dummy = NULL;
+        mpz_t x;
+        mpz_init(x);
+        mpz_set_si(x, 1);
+        set_matrix_element(inp, 0, 0, x);
+        mpz_set_si(x, 2);
+        set_matrix_element(inp, 0, 1, x);
+        mpz_set_si(x, 3);
+        set_matrix_element(inp, 0, 2, x);
+
+        Request req = serialize_request(TEST_DATA_TRANSMISSION, inp, out, dummy, dummy, 0, 0, 0);
+        make_request(req);
+        delete_matrix(inp);
+        delete_matrix(out);
+        return 0;
     }
 
     /**
@@ -50,14 +110,6 @@ int main(int argc, char const *argv[])
 
 
     // Retrive training and testing data to process from csv files
-    std::string dir;
-    if(argc != 2)
-    {
-        std::cout << "Usage: ./app_lr trainDir\n";
-        exit(-1); 
-    }
-    dir = argv[1];
-
     // Get csv contents containing train data
     std::string trainFile(dir + "/train.csv");
     std::vector<std::vector<int> > xtrain;
@@ -100,6 +152,7 @@ int main(int argc, char const *argv[])
     // Populate the matices
     populate(trainInp, xtrain);
     populate(testInp, xtest);
+    std::cout << "Populated test and train matrices.\n";
 
     // Divide train data from train labels
     mat_splice(xtrainPlain, trainInp, 0, trainInp->rows-1, 1, trainInp->cols-2);
@@ -123,9 +176,8 @@ int main(int argc, char const *argv[])
     auto ctx = Context::Create(256);
 
     // Make a request to setup the lookup table for discrete log
-    Request req = init_request(GENERATE_LOOKUP_TABLE, 1);
-    mpz_get_str(req->p, BASE, ctx->p);
-    mpz_get_str(req->g, BASE, ctx->g);
+    Matrix dummy = NULL;
+    Request req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
     req->limit = 10;
     make_request(req);
 
@@ -149,12 +201,12 @@ int main(int argc, char const *argv[])
     enc_2.encrypt(xtrainTransEnc, cmt_xtrain_trans, xtrainPlainTrans);
 
     // Generate request for the enclave to setup sk_1 and sk_2 
+    req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
     req->key_id = 1;
-    req->input_1 = app_sk_1->data();
     make_request(req);
 
+    req = serialize_request(SET_FE_SECRET_KEY, app_sk_2->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
     req->key_id = 2;
-    req->input_1 = app_sk_2->data();
     make_request(req);
 
     //TODO : Encrypt cmmmitments using the enclave pk

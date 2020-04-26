@@ -9,6 +9,7 @@
 # define ENCLAVE_FILENAME "enclave.signed.so"
 
 #include "sgx_urts.h"
+#include "enclave_u.h"
 
 typedef struct _sgx_errlist_t {
     sgx_status_t err;

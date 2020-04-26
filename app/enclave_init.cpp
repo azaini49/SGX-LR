@@ -117,10 +117,10 @@ int initialize_enclave(void)
     sgx_status_t ret = SGX_ERROR_UNEXPECTED;
     int updated = 0;
     
-    // /* Step 1: try to retrieve the launch token saved by last transaction 
-    //  *         if there is no token, then create a new one.
-    //  */
-    // /* try to get the token saved in $HOME */
+    /* Step 1: try to retrieve the launch token saved by last transaction 
+     *         if there is no token, then create a new one.
+     */
+    /* try to get the token saved in $HOME */
     // const char *home_dir = getpwuid(getuid())->pw_dir;
     
     // if (home_dir != NULL && 
@@ -150,7 +150,7 @@ int initialize_enclave(void)
     // }
     /* Step 2: call sgx_create_enclave to initialize an enclave instance */
     /* Debug Support: set 2nd parameter to 1 */
-    ret = sgx_create_enclave(ENCLAVE_FILENAME, TRUE, &token, &updated, &global_eid, NULL);
+    ret = sgx_create_enclave(ENCLAVE_FILENAME, SGX_DEBUG_FLAG, &token, &updated, &global_eid, NULL);
     if (ret != SGX_SUCCESS) {
         print_error_message(ret);
         //if (fp != NULL) fclose(fp);
@@ -161,15 +161,15 @@ int initialize_enclave(void)
     // if (updated == FALSE || fp == NULL) {
     //     /* if the token is not updated, or file handler is invalid, do not perform saving */
     //     if (fp != NULL) fclose(fp);
-    //     return ret;
+    //     return 0;
     // }
 
     // /* reopen the file with write capablity */
     // fp = freopen(token_path, "wb", fp);
-    // if (fp == NULL) return ret;
+    // if (fp == NULL) return 0;
     // size_t write_num = fwrite(token, 1, sizeof(sgx_launch_token_t), fp);
     // if (write_num != sizeof(sgx_launch_token_t))
     //     printf("Warning: Failed to save launch token to \"%s\".\n", token_path);
-    //fclose(fp);
+    // fclose(fp);
     return ret;
 }

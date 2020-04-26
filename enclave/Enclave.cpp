@@ -3,7 +3,7 @@
 #include <math.h>
 #include <vector>
 #include "../include/Queue.h"
-//#include <mutex>
+#include <inttypes.h>
 #include <map>
 //#include <condition_variable>
 
@@ -53,6 +53,7 @@ int get_discrete_log(mpz_t &x, mpz_t p)
     }
     else
     {
+        //printf_enclave("found\n");
         mpz_set(x, it->second.get_mpz_t());
     }
     return COMPLETED;
@@ -61,208 +62,43 @@ int get_discrete_log(mpz_t &x, mpz_t p)
 /** Utility function to generate lookup table
  * Currently supports only num_threads = 1
  */
-int compute_lookup_table(Request &req)
+int compute_lookup_table(Response &res)
 {
     mpz_t tmp;
     mpz_init(tmp);
+    printf_enclave("Limit : %d\n", res->limit);
 
-    mpz_t p;
-    mpz_init(p);
-    mpz_t g;
-    mpz_init(g);
-    mpz_set_str(p, req->p, BASE);
-    mpz_set_str(g, req->g, BASE);
-
-    mpz_class i = req->tid;
-    mpz_class limit = pow(2, req->limit);
+    mpz_class i = 0;
+    mpz_class limit = pow(2, res->limit);
     while(i < limit)
     {
-        mpz_powm(tmp, g, i.get_mpz_t(), p);
+        mpz_powm(tmp, res->g, i.get_mpz_t(), res->p);
         //std::unique_lock<std::mutex> locker(gaurd);
         lookup[mpz_class{tmp}] = i;
-        mpz_invert(tmp, tmp, p);
+        mpz_invert(tmp, tmp, res->p);
         lookup[mpz_class{tmp}] = -i;
         //locker.unlock();
-        i = i + req->num_threads;
+        i = i + 1;
     }
     mpz_clear(tmp);
     return COMPLETED;
 }
-
-// // Straight forward lookup in lookup table
-// void ecall_get_discrete_log(mpz_t &x, std::shared_ptr<Context> ctx)
-// {
-//     mpz_class key{x};
-//     std::map<mpz_class, mpz_class, MapComp>::iterator it = lookup.find(key);
-//     if(it == lookup.end())
-//     {
-//         mpz_invert(x, x, ctx->p);
-//         mpz_class key{x};
-//         it = lookup.find(key);
-//         if(it == lookup.end())
-//             mpz_set_si(x, -1);
-//         else
-//             mpz_mul_si(x, it->second.get_mpz_t(), -1);
-//     }
-//     else
-//     {
-//         mpz_set(x, it->second.get_mpz_t());
-//     }
-// }
-
-// // Utility function to generate lookup table
-// void ecall_lookup_table_util(std::shared_ptr<Context> ctx, mpz_class limit, int tid, int numThreads)
-// {
-//     // Temporary variable
-//     mpz_t tmp;
-//     mpz_init(tmp);
-
-//     mpz_class i = tid;
-//     while(i < std::min(limit, mpz_class{ctx->p}))
-//     {
-//         mpz_powm(tmp, ctx->g, i.get_mpz_t(), ctx->p);
-//         std::unique_lock<std::mutex> locker(gaurd);
-//         lookup[mpz_class{tmp}] = i;
-//         mpz_invert(tmp, tmp, ctx->p);
-//         lookup[mpz_class{tmp}] = -i;
-//         locker.unlock();
-//         i = i + numThreads;
-//     }
-//     mpz_clear(tmp);
-// }
-
-// // Precompute the lookup table
-// void ecall_compute_lookup_table(std::shared_ptr<Context> ctx, int bound)
-// {
-//     if(ctx == NULL)
-//         throw std::invalid_argument("Context cannot be NULL!");
-
-//     mpz_t tmp;
-//     mpz_init(tmp);
-
-//     mpz_class i = 0;
-//     mpz_class new_m = pow(2, bound);
-
-//     // Define threadpool
-//     int numThreads = std::thread::hardware_concurrency();
-//     std::vector<std::thread> threads(numThreads);
-//     for(int i = 0; i < numThreads; i++)
-//     {
-//         threads[i] = std::thread(ecall_lookup_table_util, ctx, new_m, i, numThreads);
-//     }
-//     for(int i = 0; i < numThreads; i++)
-//         threads[i].join();
-//     //std::cout << "Size of lookup table: " << lookup.size() << std::endl;
-//     mpz_clear(tmp);
-// }
-
-// // Utility function for updating weights
-// void ecall_update_weights_util(Logistic_Regression &log_reg, Matrix &update, float alpha, float lr, mpz_class mod, int tid, int numThreads)
-// {
-//     int col = tid;
-//     mpz_t x;
-//     mpz_init(x);
-//     try
-//     {
-//         while(col < log_reg.weights.cols)
-//         {
-//             mpf_class tmp = ((mpz_get_si(mat_element2(log_reg.weights, 0, col))*alpha) + mpz_get_si(mat_element2(update, 0 ,col)))*lr;
-//             mpz_set_si(x, 0);
-//             if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) > 0)
-//             {
-//                 if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) > 0)
-//                     mpz_set_si(x, tmp.get_d() + 1);
-//                 else
-//                     mpz_set_si(x, tmp.get_d());
-//             }
-//             else if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) < 0)
-//             {
-//                 if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) < 0)
-//                     mpz_set_si(x, tmp.get_d() - 1);
-//                 else
-//                     mpz_set_si(x, tmp.get_d());
-//             }
-//             mpz_add(mat_element2(log_reg.weights, 0, col), mat_element2(log_reg.weights, 0, col), x);
-//             col = col + numThreads;
-//         }
-//     }
-//     catch(int e)
-//     {
-//         std::cout << "Something very wrong has occured.\n";
-//         exit(EXIT_FAILURE);
-//     }
-// }
-
-// void ecall_update_weights(Logistic_Regression &mdl, Matrix &update_compress, Matrix &cmt, Evaluator &eval, Matrix &training_error,
-//                 float alpha, float learning_rate, int start_idx, int batch_size, int update_r, int update_c)
-// {
-//     // Initialize sfk_update
-//     mpz_t sfk_update;
-//     mpz_init(sfk_update);
-
-//     Matrix update(update_r, update_c);
-//     Matrix update_trans(update.cols, update.rows);
-    
-//     // Compute update to be made
-//     Matrix::row_inner_product(sfk_update, sk_2->data(), training_error, -1, 0, 0, start_idx, start_idx + batch_size - 1);
-//     eval.evaluate(update, update_compress, cmt, sfk_update, NO_ACTIVATION);
-//     update.transpose(update_trans);
-//     mpz_class mod{mdl.ctx->p};
-
-//     // Define threadpool
-//     int numThreads = mdl.weights.cols;
-//     int numCores = std::thread::hardware_concurrency();
-//     if(numThreads > numCores)
-//         numThreads = numCores;
-    
-//     std::vector<std::thread> threads(numThreads);
-//     for(int i = 0; i < numThreads; i++)
-//     {
-//         threads[i] = std::thread(ecall_update_weights_util, std::ref(mdl), std::ref(update_trans), alpha, learning_rate, mod, i, numThreads);
-//     }
-//     for(int i = 0; i < numThreads; i++)
-//         threads[i].join();
-
-//     mpz_clear(sfk_update);
-// }
-
-// void ecall_enclave_prediction(Logistic_Regression &mdl, Matrix &ypred, Matrix &compression, Matrix &cmt, Evaluator &eval)
-// {
-//     Matrix::row_inner_product(mdl.sfk, mdl.weights, sk_1->data());
-//     eval.evaluate(ypred, compression, cmt, mdl.sfk, ACTIVATION);
-// }
-
-// void ecall_set_secret_key(std::shared_ptr<Secret_Key> sk, int id)
-// {
-//     if(id == 1)
-//         sk_1 = std::make_unique<Secret_Key>(sk);
-//     else if(id == 2)
-//         sk_2 = std::make_unique<Secret_Key>(sk);
-// }
-
 
 /**
  * Decrypt commitments and compute the FE result
  * Currently commitments are not encfypted
  * Supports num_threads = 1
  */
-int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const mpz_t &sfk, int activation, Request &req, int start, int end, int mode)
+int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const mpz_t &sfk, int activation, Response &res, int start, int end, int mode)
 {
     if(dest == NULL || compression == NULL || cmt == NULL || sfk == NULL)
         return ERROR;
-    int row = req->tid;
+    int row = 0;
     mpz_t ct0;
     mpz_init(ct0);
 
     mpz_t tmp;
     mpz_init(tmp);
-
-    mpz_t p;
-    mpz_init(p);
-    mpz_t g;
-    mpz_init(g);
-    mpz_set_str(p, req->p, BASE);
-    mpz_set_str(g, req->g, BASE);
 
     if(end == -1)
         end = dest->rows - 1;
@@ -270,13 +106,13 @@ int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const m
     while(row < end + 1)
     {
         mpz_set(ct0, mat_element(cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, p);
-        mpz_invert(ct0, ct0, p);
+        mpz_powm(ct0, ct0, sfk, res->p);
+        mpz_invert(ct0, ct0, res->p);
         mpz_set_si(tmp, 1);
 
         mpz_mul(tmp, mat_element(compression, row, 0), ct0);
-        mpz_mod(tmp, tmp, p);
-        get_discrete_log(tmp,p);
+        mpz_mod(tmp, tmp, res->p);
+        get_discrete_log(tmp, res->p);
         if(activation == ACTIVATION)
             sigmoid(tmp, mpz_get_d(tmp));
 
@@ -286,56 +122,56 @@ int evaluate(Matrix &dest, const Matrix &compression, const Matrix &cmt, const m
         }
         else
             mpz_set(mat_element(dest, 0, row), tmp);
-        row = row + req->num_threads;
+        row = row + 1;
     }
     mpz_clear(tmp);
     mpz_clear(ct0);
-    mpz_clear(p);
-    mpz_clear(g);
     return COMPLETED;
 }
 
 /**
  * Function for updating the weights
- * input_1 -> null
+ * input_1 -> training_error
  * output-> weights
  */
-int update_weights(Request &req)
+int update_weights(Response &res)
 {
+    // printf_enclave("Weights : %d x %d\n", res->output->rows, res->output->cols);
+    // printf_enclave("Start : %d   End : %d\n", res->start_idx, res->start_idx + res->batch_size - 1);
     // Initialize sfk_update
     mpz_t sfk_update;
     mpz_init(sfk_update);
+    ////printf_enclave("sfk initialized\n");
+    Matrix update = mat_init(res->output->cols, res->output->rows);
+    //printf_enclave("Update initialized\n");
+    Matrix update_trans = mat_init(update->cols, update->rows);
 
-    Matrix update = mat_init(req->wp->update_rows, req->wp->update_cols);
-    Matrix update_trans = mat_init(req->input_1->cols, req->input_1->rows);
+    // printf_enclave("Update : %d x %d\n", update->rows, update->cols);
+    // printf_enclave("SK2 : %d x %d\n", sk_2.data()->rows, sk_2.data()->cols);
     
     // Compute update to be made
-    row_inner_product(sfk_update, sk_2.data(), req->wp->training_error, -1, 0, 0, req->wp->start_idx, req->wp->start_idx + req->wp->batch_size - 1);
-    evaluate(update, req->compression, req->cmt, sfk_update, NO_ACTIVATION, req, 0, -1, NO_ENCRYPT);
+    row_inner_product(sfk_update, res->input, sk_2.data(), -1, 0, 0, res->start_idx, res->start_idx + res->batch_size - 1);
+    evaluate(update, res->compression, res->cmt, sfk_update, NO_ACTIVATION, res, 0, -1, NO_ENCRYPT);
     transpose(update_trans, update);
+    print_matrix_e(update_trans);
+    //printf_enclave("Update trans : %d x %d\n", update_trans->rows, update_trans->cols);
 
-    int col = req->tid;
+    int col = 0;
     mpz_t x;
     mpz_init(x);
-
-    mpz_t wt_tmp;
-    mpz_init(wt_tmp);
-
-    // mpf_t tmp;
-    // mpf_init(tmp);
-    mpf_class tmp;
+    mpz_t wt;
+    mpz_init(wt);
 
     try
     {
-        while(col < req->output->cols)
+        while(col < res->output->cols)
         {
-            mpz_set(wt_tmp, mat_element(req->output, 0, col));
-            mpf_class tmp = ((mpz_get_si(wt_tmp)* req->wp->alpha) + mpz_get_si(mat_element(update_trans, 0 ,col)))*req->wp->learning_rate;
-            //mpf_set(tmp, ((mpz_get_si(wt_tmp)* req->wp->alpha) + mpz_get_si(mat_element(update_trans, 0 ,col)))*req->wp->learning_rate);
+            mpz_set(wt, mat_element(res->output, 0, col));
+            mpf_class tmp = ((mpz_get_si(wt)*res->alpha) + mpz_get_si(mat_element(update_trans, 0 ,col)))*res->learning_rate;
             mpz_set_si(x, 0);
-            if(mpf_cmp_si(tmp.get_mpf_t(), 0.0))
+            if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) > 0)
             {
-                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d() > 0))
+                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) > 0)
                     mpz_set_si(x, tmp.get_d() + 1);
                 else
                     mpz_set_si(x, tmp.get_d());
@@ -347,8 +183,9 @@ int update_weights(Request &req)
                 else
                     mpz_set_si(x, tmp.get_d());
             }
-            mpz_add(mat_element(req->output, 0, col), wt_tmp, x);
-            col = col + req->num_threads;
+            mpz_add(wt, wt, x);
+            mpz_set(mat_element(res->output, 0, col), wt);
+            col = col + 1;
         }
     }
     catch(int e)
@@ -357,7 +194,8 @@ int update_weights(Request &req)
     }
 
     mpz_clear(x);
-    mpz_clear(wt_tmp);
+    mpz_clear(wt);
+    mpz_clear(sfk_update);
     delete_matrix(update);
     delete_matrix(update_trans);
     return COMPLETED;
@@ -365,36 +203,29 @@ int update_weights(Request &req)
 
 // input_1 -> null
 // output -> ypred
-int predict_final(Request &req)
+int predict_final(Response &res)
 {
     // DECRYPT CMT!!
-    if(req->output == NULL || req->compression == NULL || req->cmt == NULL)
+    if(res->output == NULL || res->compression == NULL || res->cmt == NULL)
         return ERROR;
 
-    mpz_t sfk;
-    mpz_init(sfk);
-    mpz_set_str(sfk, req->final_sfk, BASE);
-
-    int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, ENCRYPT);
-
-    // Free mpz_t
-    mpz_clear(sfk);
+    int result = evaluate(res->output, res->compression, res->cmt, res->final_sfk, ACTIVATION, res, 0, -1, ENCRYPT);
     return result;
 }
 
 // input_1 -> weights
 // output ypred
-int predict_train(Request &req)
+int predict_train(Response &res)
 {
     mpz_t sfk;
     mpz_init(sfk);
 
-    if(req->output == NULL || req->compression == NULL || req->cmt == NULL || req->wp == NULL || req->input_1 == NULL)
+    if(res->output == NULL || res->compression == NULL || res->cmt == NULL || res->input == NULL)
         return ERROR;
-    row_inner_product(sfk, req->input_1, sk_1.data());
+    row_inner_product(sfk, res->input, sk_1.data());
 
     // DECRYPT CMT!!
-    int result = evaluate(req->output, req->compression, req->cmt, sfk, ACTIVATION, req, 0, -1, NO_ENCRYPT);
+    int result = evaluate(res->output, res->compression, res->cmt, sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
 
     mpz_clear(sfk);
     return result;
@@ -405,15 +236,16 @@ int predict_train(Request &req)
  * This method is only for testing
  * In a practical scenario, the client is expected to encrypt these values and send them to the enclave
  */
-int setup_secret_key(Request &req)
+int setup_secret_key(Response &res)
 {
     // Input_1 -> data for secret key
-    if(req->input_1 == NULL || req->key_id < 1 || req->key_id > 2)
+    if(res->input == NULL || res->key_id < 1 || res->key_id > 2)
         return ERROR;
-    if(req->key_id == 1)
-        sk_1.set_key(req->input_1);
+    if(res->key_id == 1)
+        sk_1.set_key(res->input);
     else
-        sk_2.set_key(req->input_1);
+        sk_2.set_key(res->input);
+    print_matrix_e(sk_1.data());
     return COMPLETED;
 }
 
@@ -422,14 +254,116 @@ int setup_secret_key(Request &req)
  * @params : req (input_1 = weights)
  * @return : store result in req->final_sfk
  */
-int set_sfk(Request &req)
+int set_sfk(Response &res)
 {
-    if(req->input_1 == NULL)
+    if(res->input == NULL)
         return ERROR;
     mpz_t sfk;
     mpz_init(sfk);
-    row_inner_product(sfk, req->input_1, sk_1.data());
-    mpz_get_str(req->final_sfk, BASE, sfk);
+    row_inner_product(sfk, res->input, sk_1.data());
+    mpz_set(res->final_sfk, sfk);
+    return COMPLETED;
+}
+
+int test_routine(Response res)
+{
+    if(res->output == NULL || res->input == NULL)
+        return ERROR;
+
+    mpz_t x;
+    mpz_init(x);
+    mpz_set_si(x, 1);
+
+    printf_enclave("Input Enclave : 0x% " PRIxPTR "\n", (uintptr_t)(void*)res->input);
+    printf_enclave("Output Enclave : 0x%" PRIxPTR"\n", (uintptr_t)(void*)res->output);
+
+    printf_enclave("\nInput: \n");
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            mpz_set(mat_element(res->input, i, j), mat_element(res->input, i, j));
+        }
+    }
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            printf_enclave("%lf ", mpz_get_d(mat_element(res->input, i, j)));
+        }
+        printf_enclave("\n");
+    }
+
+    Matrix tmp = mat_init(res->input->rows, res->input->cols);
+    printf_enclave("\nTMP: \n");
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            mpz_set(mat_element(tmp, i, j), mat_element(res->input, i, j));
+        }
+    }
+
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            printf_enclave("%lf ", mpz_get_d(mat_element(tmp, i, j)));
+        }
+        printf_enclave("\n");
+    }
+
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            mpz_add(mat_element(tmp, i, j), mat_element(res->input, i, j), x);
+        }
+    }
+
+    printf_enclave("\nOutput: \n");
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            mpz_set(mat_element(res->output, i, j), mat_element(res->input, i, j));
+        }
+    }
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            printf_enclave("%lf ", mpz_get_d(mat_element(res->output, i, j)));
+        }
+        printf_enclave("\n");
+    }
+
+    printf_enclave("\nTMP Modified: \n");
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            printf_enclave("%lf ", mpz_get_d(mat_element(tmp, i, j)));
+        }
+        printf_enclave("\n");
+    }
+
+    printf_enclave("\nOutput Modified: \n");
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            mpz_add(mat_element(res->output, i, j), mat_element(tmp, i, j), x);
+        }
+    }
+    for(int i = 0; i < res->input->rows; i++)
+    {
+        for(int j = 0; j < res->input->cols; j++)
+        {
+            printf_enclave("%lf ", mpz_get_d(mat_element(res->output, i, j)));
+        }
+        printf_enclave("\n");
+    }
     return COMPLETED;
 }
 
@@ -450,45 +384,71 @@ int enclave_service(void* arg)
     while(true)
     {
         Request req = task_queue->dequeue();
-        req->status = SCHEDULED;
-        if(req == NULL)
-            return ERROR;
-
-        switch(req->job_id)
+        if (req == NULL)
+            __asm__("pause");
+        else
         {
-            case GENERATE_LOOKUP_TABLE:
+            //printf("Received request\n");
+            //req->status = SCHEDULED;
+            Response res = deserialize_request(req);
+            switch(req->job_id)
             {
-                req->status = compute_lookup_table(req);
-                break;
+                case GENERATE_LOOKUP_TABLE:
+                {
+                    req->status = compute_lookup_table(res);
+                    printf_enclave("Status : %d\n", req->status);
+                    free(res);
+                    break;
+                }
+                case FINAL_PREDICTION:
+                {
+                    req->status = predict_final(res);
+                    break;
+                }
+                case TRAIN_PREDICTION:
+                {
+                    req->status = predict_train(res);
+                    break;
+                }
+                case WEIGHT_UPDATE:
+                {
+                    req->status = update_weights(res);
+                    break;
+                }
+                case SET_FE_SECRET_KEY:
+                {
+                    req->status = setup_secret_key(res);
+                    break;
+                }
+                case SET_SFK:
+                {
+                    req->status = set_sfk(res);
+                    break;
+                }
+                case GET_PUB_KEY:
+                    break;
+                case TEST_DATA_TRANSMISSION:
+                {
+                    req->status = test_routine(res);
+                    break;
+                }
             }
-            case FINAL_PREDICTION:
-            {
-                req->status = predict_final(req);
-                break;
-            }
-            case TRAIN_PREDICTION:
-            {
-                req->status = predict_train(req);
-                break;
-            }
-            case WEIGHT_UPDATE:
-            {
-                req->status = update_weights(req);
-                break;
-            }
-            case SET_FE_SECRET_KEY:
-            {
-                req->status = setup_secret_key(req);
-                break;
-            }
-            case SET_SFK:
-            {
-                req->status = set_sfk(req);
-                break;
-            }
-            case GET_PUB_KEY:
-                break;
         }
     }
     return SUCCESS;
+}
+
+void printf_enclave(const char *fmt, ...)
+{
+    char buf[BUFSIZ] = {'\0'};
+    va_list ap;
+    va_start(ap, fmt);
+    vsnprintf(buf, BUFSIZ, fmt, ap);
+    va_end(ap);
+    ocall_print_string(buf);
+}
+
+void print_matrix_e(Matrix mat)
+{
+    ocall_print_matrix(serialize_matrix(mat));
 }

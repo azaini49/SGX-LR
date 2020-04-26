@@ -10,6 +10,7 @@
 #define SET_FE_SECRET_KEY 6
 #define GET_PUB_KEY 7
 #define SET_SFK 8
+#define TEST_DATA_TRANSMISSION 14
 
 #define ENCRYPT 9
 #define NO_ENCRYPT 10
@@ -22,43 +23,24 @@
 #define BASE 16
 
 
-//#include <mutex>
-//#include <condition_variable>
+
 #include "../tools/matrix_shared.h"
 #include "../tools/sgx_tgmp.h"
-// #ifdef HAVE_SGX
-// 	# include <sgx_tgmp.h>
-// #else
-// 	# include <gmp.h>
-// #endif
-// #include <gmpxx.h>
+#include "../tools/gmpxx.h"
+#include <stdint.h>
 
-
-typedef struct wrapper
+typedef struct response
 {
-    float alpha;
-    float learning_rate;
-    Matrix training_error;
-    int update_rows;
-    int update_cols;
+    int key_id;
     int start_idx;
     int batch_size;
-    char* sfk;
-}*Wrapper;
-
-typedef struct request
-{
-    int job_id;
-    int key_id;
-    volatile int status;
-    // std::mutex gaurd;
-    // std::condition_variable status;
-
-    int tid;
-    int num_threads;
-
+    int limit;
+    
+    float alpha;
+    float learning_rate;
+    
     // General input matrix
-    Matrix input_1;
+    Matrix input;
 
     // Compression matrix if present
     Matrix compression;
@@ -68,17 +50,30 @@ typedef struct request
 
     // General output matrix
     Matrix output;
+    mpz_t p;
+    mpz_t g;
+    mpz_t final_sfk;
 
-    char* p;
-    char* g;
-    char* final_sfk;
+}*Response;
+
+typedef struct request
+{
+    int job_id;
+    int key_id;
+    volatile int status;
+    int start_idx;
+    int batch_size;
     int limit;
-
-    Wrapper wp;
+    
+    float alpha;
+    float learning_rate;
+    char buffer[1000];
 
 }*Request;
 
-Wrapper init_wrapper(float alpha, float learning_rate);
-Request init_request(int job_id, int num_threads);
-Wrapper* make_wrapper_copy(Wrapper wp, int copies = 1);
-Request* make_request_copy(Request req, int copies = 1);
+Request init_request(int job_id);
+Response init_response();
+Response deserialize_request(Request req);
+Request serialize_request(int job_id, const Matrix &input, const Matrix &output, const Matrix &compression, const Matrix &cmt, mpz_class p, mpz_class g, mpz_class final_sfk);
+char* serialize_matrix(Matrix &mat);
+Matrix deserialize_matrix(const char* serial);

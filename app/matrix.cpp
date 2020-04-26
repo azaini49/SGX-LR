@@ -32,7 +32,7 @@ void setMatrix(Matrix A, mpz_t x)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(setMatrixUtility, std::ref(A), x, i, numThreads);
+    threads[i] = std::thread(setMatrixUtility, A, x, i, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -70,7 +70,7 @@ void add_rows(Matrix A, int row1, int row2, mpz_t mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(add_rows_util, std::ref(A), row1, row2, mod, i, numThreads);
+    threads[i] = std::thread(add_rows_util, A, row1, row2, mod, i, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -116,7 +116,7 @@ void add_matrix(Matrix C, Matrix A, Matrix B, mpz_t mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(add_matrix_util, std::ref(C), std::ref(A), std::ref(B), mod, i, numThreads);
+    threads[i] = std::thread(add_matrix_util, C, A, B, mod, i, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -206,7 +206,7 @@ void matrix_mult(Matrix C, Matrix A, Matrix B, int mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(mult_util, std::ref(C), std::ref(A), std::ref(B_temp), i, mod_, numThreads);
+    threads[i] = std::thread(mult_util, C, A, B_temp, i, mod_, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -248,7 +248,7 @@ void row_major_multiplication(Matrix result, Matrix A, Matrix B, int mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(mult_util, std::ref(result), std::ref(A), std::ref(B), i, mod_, numThreads);
+    threads[i] = std::thread(mult_util, result, A, B, i, mod_, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -376,7 +376,7 @@ bool mat_is_equal(Matrix A, Matrix B, int row1, int row2, int col1, int col2)
   std::thread threads[numThreads];
   for(int i = row1; i < numThreads + row1; i++)
   {
-    threads[i-row1] = std::thread(equal_util, std::ref(A), std::ref(B), &status, row2, col1, col2, i, numThreads);
+    threads[i-row1] = std::thread(equal_util, A, B, &status, row2, col1, col2, i, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
@@ -420,7 +420,7 @@ Matrix add_cols(Matrix A,int col1, int col2, int a, int b)
 
 
 // Obtain the specified number of rows and columns
-void mat_splice(Matrix &dest, Matrix &src, int first_row_s, int last_row_s, int first_col_s, int last_col_s, int first_row_d, int last_row_d, int first_col_d, int last_col_d)
+void mat_splice(Matrix dest, Matrix src, int first_row_s, int last_row_s, int first_col_s, int last_col_s, int first_row_d, int last_row_d, int first_col_d, int last_col_d)
 {
     int row_count = last_row_s - first_row_s + 1;
     int col_count = last_col_s - first_col_s + 1;
@@ -566,14 +566,14 @@ void matrix_mod(Matrix res, Matrix A, mpz_t mod)
   std::thread threads[numThreads];
   for(int i = 0; i < numThreads; i++)
   {
-    threads[i] = std::thread(matrix_mod_util, std::ref(res), std::ref(A), mod, i, numThreads);
+    threads[i] = std::thread(matrix_mod_util, res, A, mod, i, numThreads);
   }
 
   for(int i = 0; i < numThreads; i++)
     threads[i].join();
 }
 
-void inner_product_util(Matrix& result, Matrix &A, Matrix &B, int mod, int tid, int numThreads)
+void inner_product_util(Matrix result, Matrix A, Matrix B, int mod, int tid, int numThreads)
 {
     int row = tid;
     while(row < A->rows)
@@ -584,7 +584,7 @@ void inner_product_util(Matrix& result, Matrix &A, Matrix &B, int mod, int tid, 
 }
 
 // Row-wise inner product of two matrices
-void inner_product(Matrix &result, Matrix &A, Matrix &B, int mod)
+void inner_product(Matrix result, Matrix A, Matrix B, int mod)
 {
     // Check dimensions of input matrices
     if(A->rows != B->rows || A->cols != B->cols)
@@ -611,7 +611,7 @@ void inner_product(Matrix &result, Matrix &A, Matrix &B, int mod)
         numThreads = numCores;
     std::thread threads[numThreads];
     for(int i = 0; i < numThreads; i++)
-        threads[i] = std::thread(inner_product_util, std::ref(result), std::ref(A), std::ref(B), mod, i, numThreads);
+        threads[i] = std::thread(inner_product_util,result, A, B, mod, i, numThreads);
 
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
@@ -650,8 +650,42 @@ void print_matrix(Matrix A, int r1, int r2, int c1, int c2)
   }
 }
 
+// Utility function to generate matrix
+void generate_matrix_util(Matrix A, int m, int tid, int numThreads)
+{
+    srand (time(NULL));
+    int i = tid;
+    mpz_t num;
+    mpz_init(num);
+    while(i < A->rows)
+    {
+        for(int j = 0; j < A->cols; j++)
+        {
+            mpz_set_ui(num, rand()%m);
+            set_matrix_element(A, i, j, num);
+        }
+        i = i + numThreads;
+    }
+    mpz_clear(num);
+}
 
+// Generate random matrix
+void generate_random_matrix(Matrix A, int m)
+{
+    // Use time as seed
+    srand(time(0));
 
+    // Define threadpool
+    int numThreads = std::thread::hardware_concurrency();
+
+    std::vector<std::thread> threads(numThreads);
+    for(int i = 0; i < numThreads; i++)
+    {
+        threads.push_back(std::thread(generate_matrix_util, A, m, i, numThreads));
+    }
+    for(int i = 0; i < numThreads; i++)
+        threads[i].join();
+}
 
 
 

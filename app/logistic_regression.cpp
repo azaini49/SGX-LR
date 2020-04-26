@@ -34,14 +34,11 @@ Logistic_Regression::~Logistic_Regression()
  */
 void Logistic_Regression::predict(Matrix &ypred, Matrix &xtest_enc, Matrix &cmt, Evaluator &eval)
 {
+    Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
     
-    Request req = init_request(FINAL_PREDICTION, 1);
-    mpz_get_str(req->final_sfk, BASE, this->sfk);
-    req->output = ypred;
-    req->cmt = cmt;
-    req->compression = compression;
+    Request req = serialize_request(FINAL_PREDICTION, dummy, ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
     make_request(req);
     delete_matrix(compression);
 }
@@ -73,11 +70,10 @@ void Logistic_Regression::compute_performance_metrics(const Matrix &ypred, const
  */
 void Logistic_Regression::enclave_set_sfk()
 {
-    Request req = init_request(SET_SFK, 1);
-    req->input_1 = this->weights;
+    Matrix dummy = NULL;
+    Request req = serialize_request(SET_SFK, this->weights, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
     make_request(req);
-    mpz_set_str(this->sfk, req->final_sfk, BASE);
-    free(req);
+    //free(req);
 }
 
 /**
@@ -125,13 +121,8 @@ void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Ma
     Evaluator eval(this->ctx);
 
     // Setup request object to communicate with the enclave
-    Request train_req = init_request(TRAIN_PREDICTION, 1);
-    train_req->wp = init_wrapper(alpha, learning_rate);
-    train_req->wp->batch_size = batchSize;
-    train_req->wp->update_rows = xbatch->rows;
-    train_req->wp->update_cols = training_error->rows;
-    mpz_get_str(train_req->p, BASE, this->ctx->p);
-    mpz_get_str(train_req->g, BASE, this->ctx->g);
+    Request train_req;
+    Matrix dummy = NULL;
 
     // Train for specified number of iterations
     for(int step = 0; step < this->iterations; step++)
@@ -145,16 +136,12 @@ void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Ma
         // Compress the batch input
         eval.compress(compression, xtrain_batch, this->weights);
 
-        // Assign values to request and wrapper object
-        train_req->wp->start_idx = start_idx;
-        train_req->input_1 = this->weights;
-        train_req->output = ypred;
-        train_req->compression = compression;
-        train_req->cmt = xtrain_batch_cmt;
-
-        // The enclave computes computes the prediction
+        // Assign values to request object
+        train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+        train_req->start_idx = start_idx;
+        train_req->batch_size = batchSize;
         make_request(train_req);
-        //ecall_enclave_prediction(std::ref(*this), ypred, compression, xtrain_batch_cmt, eval);
+
         transpose(ypred_trans, ypred);
         
         // Compute training error
@@ -166,13 +153,14 @@ void Logistic_Regression::train(Matrix &xtrain_enc, Matrix &xtrain_trans_enc, Ma
         eval.compress(update_compress, xbatch, training_error);
 
         // Assign values to request and wrapper for updating weights
-        train_req->output = this->weights;
-        train_req->compression = update_compress;
-        train_req->cmt = cmt_xtrain_trans;
-        train_req->wp->training_error = training_error;
-        make_request(train_req);
+        Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+        update_weights_req->start_idx = start_idx;
+        update_weights_req->batch_size = batchSize;
+        update_weights_req->alpha = alpha;
+        update_weights_req->learning_rate = learning_rate;
+        make_request(update_weights_req);
+        print_matrix(this->weights);
 
-        //ecall_update_weights(std::ref(*this), update_compress, cmt_xtrain_trans, eval, training_error, alpha, learning_rate, start_idx, batchSize, xbatch->rows, training_error->rows);
         start_idx = (start_idx + batchSize) % xtrain_enc->rows;
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;

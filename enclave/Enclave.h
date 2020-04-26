@@ -41,6 +41,9 @@ struct MapComp
     }
 };
 
+void printf_enclave(const char *fmt, ...);
+void print_matrix_e(Matrix mat);
+
 // void ecall_get_discrete_log(mpz_t x, std::shared_ptr<Context> ctx);
 
 // void ecall_lookup_table_util(std::shared_ptr<Context> ctx, mpz_class limit, int tid, int numThreads);
