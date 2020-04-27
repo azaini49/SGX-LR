@@ -21,7 +21,7 @@ void Public_Key::init(int key_len)
     this->data_ = mat_init(1, key_len);
 }
 
-const Matrix& Public_Key::data() const
+const Matrix Public_Key::data() const
 {
     return this->data_;
 }

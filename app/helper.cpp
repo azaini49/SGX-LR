@@ -10,9 +10,9 @@
 
 extern Queue* task_queue;
 
-void make_request(Request &req)
+void make_request(Request req)
 {
-    std::cout << "Making request : " << req->job_id << std::endl;
+    //std::cout << "Making request : " << req->job_id << std::endl;
     req->status = SCHEDULED;
     task_queue->enqueue(req);
     while(true)
@@ -21,20 +21,15 @@ void make_request(Request &req)
             __asm__("pause");
         else
         {
-            std::cout << "[" << req->job_id << "] : " << req->status << std::endl;
+            //std::cout << "[" << req->job_id << "] : " << req->status << std::endl;
             if(req->status == ERROR)
             {
                 spin_unlock(&req->status);
-                std::cout << "One or more attributs of request might be null!\n";
                 exit(EXIT_FAILURE);
             }
             spin_unlock(&req->status);
             break;
         }
-        // else
-        // {
-        //     __asm__("pause");
-        // }
     }
     // Reset request. Do not free data!!
     req->status = IDLE;
@@ -44,7 +39,7 @@ void make_request(Request &req)
 /**
  * Compute the hamming distance of the rows of A and B specified by 'row'
  */
-void compute_hamming_distance(Matrix &res, const Matrix &A, const Matrix &B, int row, int A_c1, int A_c2, int B_c1, int B_c2)
+void compute_hamming_distance(Matrix res, const Matrix A, const Matrix B, int row, int A_c1, int A_c2, int B_c1, int B_c2)
 {
     if(row < 0 || row >= A->rows || row >= B->rows)
     {
@@ -77,7 +72,7 @@ void compute_hamming_distance(Matrix &res, const Matrix &A, const Matrix &B, int
     }
 }
 
-void compute_vector_difference(Matrix &res, const Matrix &A, const Matrix &B, int row, int A_c1, int A_c2, int B_c1, int B_c2)
+void compute_vector_difference(Matrix res, const Matrix A, const Matrix B, int row, int A_c1, int A_c2, int B_c1, int B_c2)
 {
     if(row < 0 || row >= A->rows || row >= B->rows)
     {
@@ -136,7 +131,7 @@ void readFile(std::string filename, std::vector<std::vector<int> > &contents)
 }
 
 // Utility function used by populate
-void populate_util(Matrix &inp, std::vector<std::vector<int> > xtest, int tid, int numThreads)
+void populate_util(Matrix inp, std::vector<std::vector<int> > xtest, int tid, int numThreads)
 {
     int row = tid;
     while(row < inp->rows)
@@ -153,7 +148,7 @@ void populate_util(Matrix &inp, std::vector<std::vector<int> > xtest, int tid, i
 
 
 // Populate the input matrix with the contents of xtest
-void populate(Matrix &inp, std::vector<std::vector<int> > xtest)
+void populate(Matrix inp, std::vector<std::vector<int> > xtest)
 {
     // Define threadpool
     int numThreads = inp->rows;
@@ -164,9 +159,25 @@ void populate(Matrix &inp, std::vector<std::vector<int> > xtest)
     std::vector<std::thread> threads(numThreads);
     for(int i = 0; i < numThreads; i++)
     {
-        threads[i] = std::thread(populate_util, std::ref(inp), ref(xtest), i, numThreads);
+        threads[i] = std::thread(populate_util, inp, ref(xtest), i, numThreads);
     }
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
+}
+
+Matrix deserialize_matrix(uint8_t* buff)
+{
+    int r;
+    int c;
+    int idx = 0;
+    memcpy(&r, &buff[idx], sizeof(int));
+    idx = idx + sizeof(int);
+
+    memcpy(&c, &buff[idx], sizeof(int));
+    idx = idx + sizeof(int); 
+    // Matrix_Packet packet = (Matrix_Packet)serial;
+    Matrix m = mat_init(r, c);
+    memcpy(m->data, &buff[idx], r * c * sizeof(mpz_t));
+    return m;
 }
 

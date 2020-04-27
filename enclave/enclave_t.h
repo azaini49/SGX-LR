@@ -11,6 +11,7 @@
 #include "../tools/secret_key.h"
 #include "../tools/gmpxx.h"
 #include "../include/Queue.h"
+#include "../include/shared.h"
 #include "../include/sync_utils.hpp"
 
 #include <stdlib.h> /* for size_t */
@@ -21,10 +22,11 @@
 extern "C" {
 #endif
 
+
 int enclave_service(void* task_queue);
 
 sgx_status_t SGX_CDECL ocall_print_string(const char* str);
-sgx_status_t SGX_CDECL ocall_print_matrix(const char* mat);
+sgx_status_t SGX_CDECL ocall_print_matrix(uint8_t* val, int len);
 
 #ifdef __cplusplus
 }

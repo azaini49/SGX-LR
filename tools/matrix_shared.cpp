@@ -10,7 +10,7 @@ Matrix mat_init(int rows, int cols)
     return NULL;
   }
   Matrix A;
-  A = (Matrix)malloc(sizeof(Matrix) + rows*cols*sizeof(mpz_t));
+  A = (Matrix)malloc(sizeof(Matrix) + (rows*cols)*sizeof(mpz_t));
   A->cols = cols;
   A->rows = rows; 
   A->data = (mpz_t *)malloc(rows*cols*sizeof(mpz_t)); 
@@ -23,6 +23,14 @@ Matrix mat_init(int rows, int cols)
     }
   }
   return A;
+}
+
+void setup_matrix(E_Matrix mat, int rows, int cols)
+{
+  mat->rows = rows;
+  mat->cols = cols;
+  for(int i = 0; i < rows*cols; i++)
+    mpz_init(mat->data[i]);
 }
 
 
@@ -40,6 +48,19 @@ void get_matrix_element(mpz_t result, Matrix mat, int row_idx, int col_idx)
 
 //Set the value of matix element at position given by the indices to "val"
 void set_matrix_element(Matrix A, int row_idx, int col_idx, mpz_t val)
+{
+  if(row_idx < 0 || row_idx >= A->rows || col_idx < 0 || col_idx >= A->cols)
+  {
+    //printf("Matrix index out of range\n");
+    return;
+    //exit(1);
+  }
+  // mpz_init(A->data[row_idx * (A->cols) + col_idx]);
+  mpz_set(A->data[row_idx * (A->cols) + col_idx], val);
+}
+
+//Set the value of matix element at position given by the indices to "val"
+void set_matrix_element_e(E_Matrix A, int row_idx, int col_idx, mpz_t val)
 {
   if(row_idx < 0 || row_idx >= A->rows || col_idx < 0 || col_idx >= A->cols)
   {
@@ -102,6 +123,35 @@ int transpose(Matrix B, Matrix A, int row1, int row2, int col1, int col2)
     for(int j = col1; j < col2 + 1; j++)
     {
       set_matrix_element(B, j - col1, i - row1, mat_element(A, i, j));
+    }
+  }
+}
+
+//Set B as transpose of A
+int transpose_e(E_Matrix B, E_Matrix A, int row1, int row2, int col1, int col2)
+{
+  if(row2 == -1)
+    row2 = A->rows - 1;
+  if(col2 == -1)
+    col2 = A->cols - 1;
+
+  if(B->rows != (col2 - col1 + 1) || B->cols != (row2 - row1 + 1))
+  {
+    return -1;
+    // std::cout << "r2 - r1 + 1 : " << row2 - row1 + 1 << std::endl;
+    // std::cout << "c2 - c1 + 1 : " << col2 - col1 + 1 << std::endl;
+    // std::cout << "Error: Incompatible matrix dimensions.\n";
+    // std::cout << "Dimensions provided:\n";
+    // std::cout << "B: " << B->rows << " x " << B->cols << std::endl;
+    // std::cout << "A: " << A->rows << " x " << A->cols << std::endl;
+    //exit(1);
+  }
+
+  for(int i = row1; i < row2 + 1; i++)
+  {
+    for(int j = col1; j < col2 + 1; j++)
+    {
+      set_matrix_element_e(B, j - col1, i - row1, mat_element(A, i, j));
     }
   }
 }

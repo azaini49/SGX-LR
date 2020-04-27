@@ -7,6 +7,7 @@ enclave
         include "../tools/secret_key.h"
         include "../tools/gmpxx.h"
         include "../include/Queue.h"
+        include "../include/shared.h"
         include "../include/sync_utils.hpp"
 
         public int enclave_service([user_check]void* task_queue);
@@ -15,6 +16,6 @@ enclave
     untrusted
     {
         void ocall_print_string([in, string] const char *str);
-        void ocall_print_matrix([in, string] const char *mat);
+        void ocall_print_matrix([in, count=len] uint8_t *val, int len);
     };
 };

@@ -7,17 +7,18 @@ typedef struct ms_enclave_service_t {
 } ms_enclave_service_t;
 
 typedef struct ms_ocall_print_string_t {
-	const char* ms_str;
+	char* ms_str;
 } ms_ocall_print_string_t;
 
 typedef struct ms_ocall_print_matrix_t {
-	const char* ms_mat;
+	uint8_t* ms_val;
+	int ms_len;
 } ms_ocall_print_matrix_t;
 
 static sgx_status_t SGX_CDECL enclave_ocall_print_string(void* pms)
 {
 	ms_ocall_print_string_t* ms = SGX_CAST(ms_ocall_print_string_t*, pms);
-	ocall_print_string(ms->ms_str);
+	ocall_print_string((const char*)ms->ms_str);
 
 	return SGX_SUCCESS;
 }
@@ -25,7 +26,7 @@ static sgx_status_t SGX_CDECL enclave_ocall_print_string(void* pms)
 static sgx_status_t SGX_CDECL enclave_ocall_print_matrix(void* pms)
 {
 	ms_ocall_print_matrix_t* ms = SGX_CAST(ms_ocall_print_matrix_t*, pms);
-	ocall_print_matrix(ms->ms_mat);
+	ocall_print_matrix(ms->ms_val, ms->ms_len);
 
 	return SGX_SUCCESS;
 }

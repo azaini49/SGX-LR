@@ -42,9 +42,10 @@ void ocall_print_string(const char *str)
     printf("%s", str);
 }
 
-void ocall_print_matrix(const char* serial)
+void ocall_print_matrix(uint8_t* val, int len)
 {
-    Matrix m = deserialize_matrix(serial);
+    std::cout << "User side ocall\n";
+    Matrix m = deserialize_matrix(val);
     print_matrix(m);
 }
 
@@ -53,55 +54,16 @@ int main(int argc, char const *argv[])
 
     std::string dir;
     if(argc < 2)
-    {
-        // std::cout << "Usage: ./app_lr trainDir\n";
-        // exit(-1); 
-        dir = "../Lingspam";
-    }
+        dir = "./Lingspam";
     else
         dir = argv[1];
 
-    if(dir.compare("test1") == 0)
-    {
-         Matrix A = mat_init(5, 5);
-        generate_random_matrix(A);
-        char* serialized_str = serialize_matrix(A);
-        Matrix B = deserialize_matrix(serialized_str);
-        if(mat_is_equal(A, B))
-            std::cout << "SUCCESS\n";
-        else
-            std::cout << "FAILURE\n";
-        return 0;
-    }
-    
     // Launch enclave
     int enclave_status = launch_enclave();
     if(enclave_status != SGX_SUCCESS)
     {
         std::cout << "Failed to launch enclave. Exiting...\n";
         exit(EXIT_FAILURE); 
-    }
-    
-    
-    if(dir.compare("test2") == 0)
-    {
-        Matrix inp = mat_init(1, 3);
-        Matrix out = mat_init(1, 3);
-        Matrix dummy = NULL;
-        mpz_t x;
-        mpz_init(x);
-        mpz_set_si(x, 1);
-        set_matrix_element(inp, 0, 0, x);
-        mpz_set_si(x, 2);
-        set_matrix_element(inp, 0, 1, x);
-        mpz_set_si(x, 3);
-        set_matrix_element(inp, 0, 2, x);
-
-        Request req = serialize_request(TEST_DATA_TRANSMISSION, inp, out, dummy, dummy, 0, 0, 0);
-        make_request(req);
-        delete_matrix(inp);
-        delete_matrix(out);
-        return 0;
     }
 
     /**
@@ -178,7 +140,7 @@ int main(int argc, char const *argv[])
     // Make a request to setup the lookup table for discrete log
     Matrix dummy = NULL;
     Request req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
-    req->limit = 10;
+    req->limit = 15;
     make_request(req);
 
     // Generate pk and sk to encrypt xtrain and xtest
@@ -209,7 +171,7 @@ int main(int argc, char const *argv[])
     req->key_id = 2;
     make_request(req);
 
-    //TODO : Encrypt cmmmitments using the enclave pk
+    //TODO : Encrypt commitments using the enclave pk
 
     // Instantiate LR model to train
     Logistic_Regression mdl(ctx, 6, 10.0);
@@ -219,9 +181,8 @@ int main(int argc, char const *argv[])
     mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval);
     transpose(ypred, ypredTrans);
     mdl.compute_performance_metrics(ypred, ytestPlain);
-
     std::cout << "Accuracy : " << mdl.accuracy << std::endl;
-
+    sgx_destroy_enclave(global_eid);
     
     return 0;
 }

@@ -5,7 +5,7 @@
 
 Request init_request(int job_id)
 {
-    Request req = (Request)malloc(sizeof(Request) + 6*sizeof(int) + 2*sizeof(float) + 1000*sizeof(char));
+    Request req = (Request)malloc(sizeof(Request) + 6*sizeof(int) + 2*sizeof(float) + 2000*sizeof(char));
     req->job_id = job_id;
     req->status = SCHEDULED;
     req->limit = 15;
@@ -14,13 +14,12 @@ Request init_request(int job_id)
     req->batch_size = 0;
     req->alpha = 0;
     req->learning_rate = 0;
+    mpz_init(req->final_sfk);
     return req;
 }
 
-Response init_response()
+void init_response(Response res)
 {
-    Response res = (Response)malloc(sizeof(Response) + 4 * sizeof(Matrix) + 4*sizeof(int) + 2*sizeof(float) + 3*sizeof(mpz_t));
-
     res->input = NULL;
     res->cmt = NULL;
     res->compression = NULL;
@@ -31,57 +30,13 @@ Response init_response()
     res->batch_size = 0;
     res->alpha = 0;
     res->learning_rate = 0;
-
+    mpz_init(res->final_sfk);
     mpz_init(res->p);
     mpz_init(res->g);
-    mpz_init(res->final_sfk);
 
-    return res;
 }
 
-char* serialize_matrix(Matrix &mat)
-{
-    int r = mat->rows;
-    int c = mat->cols;
-    char* seriel = (char*)malloc(r*c*sizeof(mpz_t)*sizeof(char) + 2*sizeof(int));
-    char* tmp = reinterpret_cast<char*>(&r);
-    int idx = 0;
-    for(int i = 0; i < sizeof(int); i++)
-        seriel[idx + i] = tmp[i];
-    idx = idx + sizeof(int);
-
-    tmp = reinterpret_cast<char*>(&c);
-    for(int i = 0; i < sizeof(int); i++)
-        seriel[idx + i] = tmp[i];
-    idx = idx + sizeof(int);
-
-    tmp = reinterpret_cast<char*>(mat->data);
-    for(int i = 0; i < r*c*sizeof(mpz_t); i++)
-        seriel[idx + i] = tmp[i];
-    idx = idx + r*c*sizeof(mpz_t);
-
-    return seriel;
-}
-
-Matrix deserialize_matrix(const char* serial)
-{
-    int r;
-    int c;
-    int idx = 0;
-    memcpy(&r, &serial[idx], sizeof(int));
-    idx = idx + sizeof(int);
-
-    memcpy(&c, &serial[idx], sizeof(int));
-    idx = idx + sizeof(int); 
-    
-    Matrix m = mat_init(r, c);
-    char* tmp = reinterpret_cast<char*>(m->data);
-    memcpy(tmp, &serial[idx], r*c*sizeof(mpz_t));
-    return m;
-}
-
-
-Request serialize_request(int job_id, const Matrix &input, const Matrix &output, const Matrix &compression, const Matrix &cmt, mpz_class p, mpz_class g, mpz_class final_sfk)
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, mpz_class final_sfk, char* buff)
 {
     Request req = init_request(job_id);
     int idx = 0;
@@ -174,12 +129,29 @@ Request serialize_request(int job_id, const Matrix &input, const Matrix &output,
     for(int i = 0; i < sizeof(uintptr_t); i++)
         req->buffer[i + idx] = tmp[i];
     idx = idx + sizeof(uintptr_t);
+
+    if(buff == NULL)
+    {
+        uintptr_t ptr = 0;
+        char* tmp = (char*)&ptr;
+        for(int i = 0; i < sizeof(uintptr_t); i++)
+            req->buffer[i + idx] = tmp[i];
+        idx = idx + sizeof(uintptr_t);
+    }
+    else
+    {
+        uintptr_t ptr = reinterpret_cast<uintptr_t>(buff);
+        char* tmp = (char*)&ptr;
+        for(int i = 0; i < sizeof(uintptr_t); i++)
+            req->buffer[i + idx] = tmp[i];
+        idx = idx + sizeof(uintptr_t);
+    }
+
     return req;
 }
 
-Response deserialize_request(Request req)
+void deserialize_request(Response res, Request req)
 {
-    Response res = init_response();
     int idx = 0;
     uintptr_t inp_p;
     memcpy(&inp_p, &req->buffer[idx], sizeof(uintptr_t));
@@ -237,6 +209,14 @@ Response deserialize_request(Request req)
         mpz_set_str(res->final_sfk, reinterpret_cast<char*>(sfk_p), BASE); 
     idx = idx + sizeof(uintptr_t);
 
+    uintptr_t buff_p;
+    memcpy(&buff_p, &req->buffer[idx], sizeof(uintptr_t));
+    if(buff_p == 0)
+        res->out_str = NULL;
+    else
+        res->out_str = reinterpret_cast<char*>(buff_p); 
+    idx = idx + sizeof(uintptr_t);
+
     res->limit = req->limit;
     res->key_id = req->key_id;
     res->start_idx = req->start_idx;
@@ -245,225 +225,3 @@ Response deserialize_request(Request req)
     res->learning_rate = req->learning_rate;
 }
 
-
-// Request serialize_request(Matrix input, Matrix output, Matrix compression, Matrix cmt, mpz_t p, mpz_t g, mpz_t final_sfk)
-// {
-//     Request req = init_request();
-//     int idx = 0;
-//     if(input == NULL)
-//     {
-//         int val = 0;
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < 2*sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + 2*sizeof(int);
-//     }
-//     else
-//     {
-//         uint8_t* tmp;
-//         int rows = input->rows;
-//         int cols = input->cols;
-
-//         tmp = (uint8_t*)&rows;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&cols;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)input->data;
-//         for(int i = 0; i < rows*cols; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + rows*cols;
-//     }
-
-//     if(output == NULL)
-//     {
-//         int val = 0;
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < 2*sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + 2*sizeof(int);
-//     }
-//     else
-//     {
-//         uint8_t* tmp;
-//         int rows = output->rows;
-//         int cols = output->cols;
-
-//         tmp = (uint8_t*)&rows;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&cols;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)output->data;
-//         for(int i = 0; i < rows*cols; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + rows*cols;
-//     }
-
-//     if(compression == NULL)
-//     {
-//         int val = 0;
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < 2*sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + 2*sizeof(int);
-//     }
-//     else
-//     {
-//         uint8_t* tmp;
-//         int rows = compression->rows;
-//         int cols = compression->cols;
-
-//         tmp = (uint8_t*)&rows;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&cols;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)compression->data;
-//         for(int i = 0; i < rows*cols; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + rows*cols;
-//     }
-
-//     if(cmt == NULL)
-//     {
-//         int val = 0;
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < 2*sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + 2*sizeof(int);
-//     }
-//     else
-//     {
-//         uint8_t* tmp;
-//         int rows = cmt->rows;
-//         int cols = cmt->cols;
-
-//         tmp = (uint8_t*)&rows;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&cols;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)cmt->data;
-//         for(int i = 0; i < rows*cols; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + rows*cols;
-//     }
-
-//     if(p == NULL)
-//     {
-//         mpz_class v = 0;
-//         char* str = mpz_get_str(NULL, BASE, v.get_mpz_t());
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-//     else
-//     {
-//         char* str = mpz_get_str(NULL, BASE, p);
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-
-//     if(g == NULL)
-//     {
-//         mpz_class v = 0;
-//         char* str = mpz_get_str(NULL, BASE, v.get_mpz_t());
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-//     else
-//     {
-//         char* str = mpz_get_str(NULL, BASE, g);
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-
-//     if(final_sfk == NULL)
-//     {
-//         mpz_class v = 0;
-//         char* str = mpz_get_str(NULL, BASE, v.get_mpz_t());
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-//     else
-//     {
-//         char* str = mpz_get_str(NULL, BASE, final_sfk);
-//         int val = strlen(str);
-
-//         uint8_t* tmp = (uint8_t*)&val;
-//         for(int i = 0; i < sizeof(int); i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + sizeof(int);
-
-//         tmp = (uint8_t*)&str;
-//         for(int i = 0; i < val; i++)
-//             req->buffer[i + idx] = tmp[i];
-//         idx = idx + val;
-//     }
-//     return req;
-// }

@@ -48,6 +48,9 @@ typedef struct response
     // Commitment matrix if present
     Matrix cmt;
 
+    // Store final sfk
+    char* out_str;
+
     // General output matrix
     Matrix output;
     mpz_t p;
@@ -64,16 +67,15 @@ typedef struct request
     int start_idx;
     int batch_size;
     int limit;
-    
+    mpz_t final_sfk;   
     float alpha;
     float learning_rate;
     char buffer[1000];
-
+    char out[1000];   
 }*Request;
 
 Request init_request(int job_id);
-Response init_response();
-Response deserialize_request(Request req);
-Request serialize_request(int job_id, const Matrix &input, const Matrix &output, const Matrix &compression, const Matrix &cmt, mpz_class p, mpz_class g, mpz_class final_sfk);
-char* serialize_matrix(Matrix &mat);
-Matrix deserialize_matrix(const char* serial);
+void init_response(Response res);
+void deserialize_request(Response res, Request req);
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, mpz_class final_sfk, char* buff = NULL);
+int serialize_matrix(Matrix mat, uint8_t* buff);

@@ -13,7 +13,7 @@ Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key
 }
 
 // Utility function to encrypt data
-void Encryptor::encrypt_util(Encryptor &enc, Matrix &ciphertext, Matrix &commitment, const Matrix &plaintext, gmp_randstate_t state, int tid, int numThreads)
+void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
     // Generate random nonce
     mpz_t nonce;
@@ -52,7 +52,7 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix &ciphertext, Matrix &commitm
  * @params : plaintext matrix
  * @return : ciphertext, commitment
  */
-void Encryptor::encrypt(Matrix &ciphertext, Matrix &commitment, const Matrix &plaintext)
+void Encryptor::encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext)
 {
     if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
         throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");

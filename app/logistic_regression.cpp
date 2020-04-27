@@ -34,10 +34,10 @@ Logistic_Regression::~Logistic_Regression()
  */
 void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval)
 {
+    Timer timer("Prediction Time");
     Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
-    
     Request req = serialize_request(FINAL_PREDICTION, dummy, ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
     make_request(req);
     delete_matrix(compression);
@@ -71,8 +71,10 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
 void Logistic_Regression::enclave_set_sfk()
 {
     Matrix dummy = NULL;
-    Request req = serialize_request(SET_SFK, this->weights, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+    Matrix out = mat_init(1, 1);
+    Request req = serialize_request(SET_SFK, this->weights, out, dummy, dummy, 0, 0, 0);
     make_request(req);
+    mpz_set_str(this->sfk, req->out, 10);
     //free(req);
 }
 
@@ -81,6 +83,7 @@ void Logistic_Regression::enclave_set_sfk()
  */
 void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate)
 {
+    Timer timer("Training Time");
     // Check input dimensions (ytrain includes an extra col for the commitment)
     if(xtrain_enc->rows != ytrain->cols || ytrain->rows != 1)
     {
@@ -127,7 +130,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
     // Train for specified number of iterations
     for(int step = 0; step < this->iterations; step++)
     {
-        std::cout << "Iteration : " << step << std::endl;
+        //std::cout << "################################### Iteration : " << step << std::endl;
 
         // Obtain the batch to train over
         mat_splice(xtrain_batch, xtrain_enc, start_idx, start_idx + batchSize - 1, 0, xtrain_enc->cols - 1);
@@ -143,10 +146,10 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         make_request(train_req);
 
         transpose(ypred_trans, ypred);
-        
-        // Compute training error
+       
+	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-
+        
         // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
@@ -159,8 +162,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         update_weights_req->alpha = alpha;
         update_weights_req->learning_rate = learning_rate;
         make_request(update_weights_req);
-        print_matrix(this->weights);
-
+    
         start_idx = (start_idx + batchSize) % xtrain_enc->rows;
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;

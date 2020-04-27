@@ -10,7 +10,7 @@ class Public_Key
         int key_len;
         Public_Key(Matrix mat) = delete;
         Public_Key(int key_len) = delete;
-        const Matrix& data() const;
+        const Matrix data() const;
     public:
         Public_Key();
         Public_Key(const Public_Key &copy);

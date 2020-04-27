@@ -16,14 +16,8 @@
 extern "C" {
 #endif
 
-#ifndef OCALL_PRINT_STRING_DEFINED__
-#define OCALL_PRINT_STRING_DEFINED__
 void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_string, (const char* str));
-#endif
-#ifndef OCALL_PRINT_MATRIX_DEFINED__
-#define OCALL_PRINT_MATRIX_DEFINED__
-void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_matrix, (const char* mat));
-#endif
+void SGX_UBRIDGE(SGX_NOCONVENTION, ocall_print_matrix, (uint8_t* val, int len));
 
 sgx_status_t enclave_service(sgx_enclave_id_t eid, int* retval, void* task_queue);
 

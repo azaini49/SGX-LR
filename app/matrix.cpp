@@ -644,7 +644,8 @@ void print_matrix(Matrix A, int r1, int r2, int c1, int c2)
   {
     for (int j = c1; j < c2+1; j++)
     {
-      printf("%lf ",  mpz_get_d(mat_element(A, i, j)));
+	char* str = mpz_get_str(NULL, 10, mat_element(A,i,j));
+        printf("%s ", str);
     }
     printf("\n");
   }
@@ -678,10 +679,10 @@ void generate_random_matrix(Matrix A, int m)
     // Define threadpool
     int numThreads = std::thread::hardware_concurrency();
 
-    std::vector<std::thread> threads(numThreads);
+    std::thread threads[numThreads];
     for(int i = 0; i < numThreads; i++)
     {
-        threads.push_back(std::thread(generate_matrix_util, A, m, i, numThreads));
+        threads[i] = std::thread(generate_matrix_util, A, m, i, numThreads);
     }
     for(int i = 0; i < numThreads; i++)
         threads[i].join();

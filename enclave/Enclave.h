@@ -23,10 +23,6 @@
 #define ERR_FAIL_SEAL 9
 #define ERR_FAIL_UNSEAL 10
 
-// Store the secret keys in the enclave
-Secret_Key sk_1;
-Secret_Key sk_2;
-
 #define ACTIVATION 0
 #define NO_ACTIVATION 1
 
@@ -34,7 +30,6 @@ struct MapComp
 {
     bool operator() (const mpz_class a, const mpz_class b) const
     {
-        //int flag = mpz_cmp(a, b);
         if(a < b)
             return true;
         return false;
@@ -42,19 +37,6 @@ struct MapComp
 };
 
 void printf_enclave(const char *fmt, ...);
-void print_matrix_e(Matrix mat);
-
-// void ecall_get_discrete_log(mpz_t x, std::shared_ptr<Context> ctx);
-
-// void ecall_lookup_table_util(std::shared_ptr<Context> ctx, mpz_class limit, int tid, int numThreads);
-
-// void ecall_compute_lookup_table(std::shared_ptr<Context> ctx, int bound = 15);
-
-// void ecall_update_weights_util(Logistic_Regression &log_reg, Matrix &update, float alpha, float lr, mpz_class mod, int tid, int numThreads);
-
-// void ecall_update_weights(Logistic_Regression &mdl, Matrix &update_compress, Matrix &cmt, Evaluator &eval, Matrix &training_error,
-//                 float alpha, float learning_rate, int start_idx, int batch_size, int update_r, int update_c);
-
-// void ecall_enclave_prediction(Logistic_Regression &mdl, Matrix &ypred, Matrix &compression, Matrix &cmt, Evaluator &eval);
-
-// void ecall_set_secret_key(std::shared_ptr<Secret_Key> sk, int id);
+void print_matrix_e(const Matrix mat);
+void print_ematrix_e(const E_Matrix mat);
+void print_mpz(mpz_t m);
