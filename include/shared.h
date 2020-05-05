@@ -10,7 +10,7 @@
 #define SET_FE_SECRET_KEY 6
 #define GET_PUB_KEY 7
 #define SET_SFK 8
-#define TEST_DATA_TRANSMISSION 14
+#define EXIT_ENCLAVE 14
 
 #define ENCRYPT 9
 #define NO_ENCRYPT 10
@@ -77,5 +77,5 @@ typedef struct request
 Request init_request(int job_id);
 void init_response(Response res);
 void deserialize_request(Response res, Request req);
-Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, mpz_class final_sfk, char* buff = NULL);
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt = 0, mpz_class p = 0, mpz_class g = 0, char* buff = NULL);
 int serialize_matrix(Matrix mat, uint8_t* buff);

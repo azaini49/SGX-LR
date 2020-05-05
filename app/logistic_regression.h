@@ -12,7 +12,6 @@ class Logistic_Regression
         float lambda;
         float accuracy;
         Matrix weights;
-        mpz_t sfk;
         Logistic_Regression(std::shared_ptr<Context> context, int iter = 10, float reg_const = 5.0);
         ~Logistic_Regression();
         void train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt, Matrix cmt_xtrain_trans, int batchSize = 1024, float learningRate = 0.004);

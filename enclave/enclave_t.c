@@ -1,9 +1,10 @@
 #include "enclave_t.h"
 
 #include "sgx_trts.h" /* for sgx_ocalloc, sgx_is_outside_enclave */
+#include "sgx_lfence.h" /* for sgx_lfence */
 
 #include <errno.h>
-#include <string.h> /* for memcpy etc */
+#include <mbusafecrt.h> /* for memcpy_s etc */
 #include <stdlib.h> /* for malloc/free etc */
 
 #define CHECK_REF_POINTER(ptr, siz) do {	\
@@ -16,6 +17,11 @@
 		return SGX_ERROR_INVALID_PARAMETER;\
 } while (0)
 
+#define CHECK_ENCLAVE_POINTER(ptr, siz) do {	\
+	if ((ptr) && ! sgx_is_within_enclave((ptr), (siz)))	\
+		return SGX_ERROR_INVALID_PARAMETER;\
+} while (0)
+
 
 typedef struct ms_enclave_service_t {
 	int ms_retval;
@@ -23,7 +29,7 @@ typedef struct ms_enclave_service_t {
 } ms_enclave_service_t;
 
 typedef struct ms_ocall_print_string_t {
-	char* ms_str;
+	const char* ms_str;
 } ms_ocall_print_string_t;
 
 typedef struct ms_ocall_print_matrix_t {
@@ -34,9 +40,14 @@ typedef struct ms_ocall_print_matrix_t {
 static sgx_status_t SGX_CDECL sgx_enclave_service(void* pms)
 {
 	CHECK_REF_POINTER(pms, sizeof(ms_enclave_service_t));
+	//
+	// fence after pointer checks
+	//
+	sgx_lfence();
 	ms_enclave_service_t* ms = SGX_CAST(ms_enclave_service_t*, pms);
 	sgx_status_t status = SGX_SUCCESS;
 	void* _tmp_task_queue = ms->ms_task_queue;
+
 
 
 	ms->ms_retval = enclave_service(_tmp_task_queue);
@@ -76,7 +87,10 @@ sgx_status_t SGX_CDECL ocall_print_string(const char* str)
 	size_t ocalloc_size = sizeof(ms_ocall_print_string_t);
 	void *__tmp = NULL;
 
-	ocalloc_size += (str != NULL && sgx_is_within_enclave(str, _len_str)) ? _len_str : 0;
+
+	CHECK_ENCLAVE_POINTER(str, _len_str);
+
+	ocalloc_size += (str != NULL) ? _len_str : 0;
 
 	__tmp = sgx_ocalloc(ocalloc_size);
 	if (__tmp == NULL) {
@@ -85,21 +99,24 @@ sgx_status_t SGX_CDECL ocall_print_string(const char* str)
 	}
 	ms = (ms_ocall_print_string_t*)__tmp;
 	__tmp = (void *)((size_t)__tmp + sizeof(ms_ocall_print_string_t));
+	ocalloc_size -= sizeof(ms_ocall_print_string_t);
 
-	if (str != NULL && sgx_is_within_enclave(str, _len_str)) {
-		ms->ms_str = (char*)__tmp;
+	if (str != NULL) {
+		ms->ms_str = (const char*)__tmp;
+		if (memcpy_s(__tmp, ocalloc_size, str, _len_str)) {
+			sgx_ocfree();
+			return SGX_ERROR_UNEXPECTED;
+		}
 		__tmp = (void *)((size_t)__tmp + _len_str);
-		memcpy((void*)ms->ms_str, str, _len_str);
-	} else if (str == NULL) {
-		ms->ms_str = NULL;
+		ocalloc_size -= _len_str;
 	} else {
-		sgx_ocfree();
-		return SGX_ERROR_INVALID_PARAMETER;
+		ms->ms_str = NULL;
 	}
 	
 	status = sgx_ocall(0, ms);
 
-
+	if (status == SGX_SUCCESS) {
+	}
 	sgx_ocfree();
 	return status;
 }
@@ -107,13 +124,16 @@ sgx_status_t SGX_CDECL ocall_print_string(const char* str)
 sgx_status_t SGX_CDECL ocall_print_matrix(uint8_t* val, int len)
 {
 	sgx_status_t status = SGX_SUCCESS;
-	size_t _len_val = len * sizeof(*val);
+	size_t _len_val = len * sizeof(uint8_t);
 
 	ms_ocall_print_matrix_t* ms = NULL;
 	size_t ocalloc_size = sizeof(ms_ocall_print_matrix_t);
 	void *__tmp = NULL;
 
-	ocalloc_size += (val != NULL && sgx_is_within_enclave(val, _len_val)) ? _len_val : 0;
+
+	CHECK_ENCLAVE_POINTER(val, _len_val);
+
+	ocalloc_size += (val != NULL) ? _len_val : 0;
 
 	__tmp = sgx_ocalloc(ocalloc_size);
 	if (__tmp == NULL) {
@@ -122,22 +142,25 @@ sgx_status_t SGX_CDECL ocall_print_matrix(uint8_t* val, int len)
 	}
 	ms = (ms_ocall_print_matrix_t*)__tmp;
 	__tmp = (void *)((size_t)__tmp + sizeof(ms_ocall_print_matrix_t));
+	ocalloc_size -= sizeof(ms_ocall_print_matrix_t);
 
-	if (val != NULL && sgx_is_within_enclave(val, _len_val)) {
+	if (val != NULL) {
 		ms->ms_val = (uint8_t*)__tmp;
+		if (memcpy_s(__tmp, ocalloc_size, val, _len_val)) {
+			sgx_ocfree();
+			return SGX_ERROR_UNEXPECTED;
+		}
 		__tmp = (void *)((size_t)__tmp + _len_val);
-		memcpy(ms->ms_val, val, _len_val);
-	} else if (val == NULL) {
-		ms->ms_val = NULL;
+		ocalloc_size -= _len_val;
 	} else {
-		sgx_ocfree();
-		return SGX_ERROR_INVALID_PARAMETER;
+		ms->ms_val = NULL;
 	}
 	
 	ms->ms_len = len;
 	status = sgx_ocall(1, ms);
 
-
+	if (status == SGX_SUCCESS) {
+	}
 	sgx_ocfree();
 	return status;
 }

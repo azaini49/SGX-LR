@@ -5,7 +5,6 @@
 #include "../include/Queue.h"
 #include <inttypes.h>
 #include <map>
-//#include <condition_variable>
 
 #ifndef SUCCESS
 #define SUCCESS 1
@@ -39,27 +38,16 @@ int sigmoid(mpz_t res, double x)
     return COMPLETED;
 }
 
-// Straight forward lookup in lookup table to get discrete log value
 int get_discrete_log(mpz_t &x, mpz_t p)
 {
     mpz_class key{x};
-    std::map<mpz_class, mpz_class, MapComp>::iterator it = lookup.find(key);
-    if(it == lookup.end())
+    auto it = lookup.begin();
+    while(it != lookup.end())
     {
-        mpz_invert(x, x, p);
-        mpz_class key{x};
-        it = lookup.find(key);
-        if(it == lookup.end())
-            mpz_set_si(x, -1);
-        else
-            mpz_mul_si(x, it->second.get_mpz_t(), -1);
+        if(it->first == key)
+            mpz_set(x, it->second.get_mpz_t());
+        it++;
     }
-    else
-    {
-        //printf_enclave("found\n");
-        mpz_set(x, it->second.get_mpz_t());
-    }
-    return COMPLETED;
 }
 
 /** Utility function to generate lookup table
@@ -75,11 +63,9 @@ int compute_lookup_table(Response res)
     while(i < limit)
     {
         mpz_powm(tmp, res->g, i.get_mpz_t(), res->p);
-        //std::unique_lock<std::mutex> locker(gaurd);
         lookup[mpz_class{tmp}] = i;
         mpz_invert(tmp, tmp, res->p);
         lookup[mpz_class{tmp}] = -i;
-        //locker.unlock();
         i = i + 1;
     }
     mpz_clear(tmp);
@@ -152,7 +138,6 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
 
     while(row < end + 1)
     {
-        //printf_enclave("Evaluate Row : %d\n", row);
         mpz_set(ct0, mat_element(cmt, row, 0));
         mpz_powm(ct0, ct0, sfk, res->p);
         mpz_invert(ct0, ct0, res->p);
@@ -249,10 +234,9 @@ int update_weights(Response res)
 // output -> ypred
 int predict_final(Response res)
 {
-    // DECRYPT CMT!!
     if(res->output == NULL || res->compression == NULL || res->cmt == NULL)
         return ERROR;
-    int result = evaluate(res->output, res->compression, res->cmt, res->final_sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
+    int result = evaluate(res->output, res->compression, res->cmt, sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
     return result;
 }
 
@@ -260,17 +244,11 @@ int predict_final(Response res)
 // output ypred
 int predict_train(Response res)
 {
-    mpz_t sfk;
-    mpz_init(sfk);
-
     if(res->output == NULL || res->compression == NULL || res->cmt == NULL || res->input == NULL)
         return ERROR;
     row_inner_product(sfk, res->input, sk_1.data());
-
-    // DECRYPT CMT!!
     int result = evaluate(res->output, res->compression, res->cmt, sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
 
-    mpz_clear(sfk);
     return result;
 }
 
@@ -303,17 +281,9 @@ int setup_secret_key(Response res)
  */
 int set_sfk(Response res, Request req)
 {
-    if(res->input == NULL || res->output == NULL)
+    if(res->input == NULL)
         return ERROR;
-    mpz_t sfk;
-    mpz_init(sfk);
     row_inner_product(sfk, res->input, sk_1.data());
-    char* str = mpz_get_str(NULL, 10, sfk);
-    int idx = 0;
-    while(str[idx] != '\0')
-        idx++;
-    memset(req->out, '\0', 1000);
-    memcpy(req->out, str, idx);
     return COMPLETED;
 }
 
@@ -327,11 +297,15 @@ int enclave_service(void* arg)
     if(arg == NULL)
         return FAILURE;
 
+    // Initialize final sfk
+    mpz_init(sfk);
+
     // Define task queue
     Queue* task_queue = (Queue*)arg;
+    bool shutdown = false;
 
     // Start listening for request
-    while(true)
+    while(!shutdown)
     {
         Request req = task_queue->dequeue();
         if (req == NULL)
@@ -371,6 +345,12 @@ int enclave_service(void* arg)
                 case SET_SFK:
                 {
                     req->status = set_sfk(&res, req);
+                    break;
+                }
+                case EXIT_ENCLAVE:
+                {
+                    shutdown = true;
+                    req->status = COMPLETED;
                     break;
                 }
                 case GET_PUB_KEY:

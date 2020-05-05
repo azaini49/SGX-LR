@@ -14,16 +14,13 @@
  */
 Logistic_Regression::Logistic_Regression(std::shared_ptr<Context> context, int iter, float reg_const)
     :ctx(context), iterations(iter), lambda(reg_const)
-{
-    mpz_init(this->sfk);
-}
+{}
 
 /**
  * Default destructor
  */
 Logistic_Regression::~Logistic_Regression()
 {
-    mpz_clear(this->sfk);
     delete_matrix(this->weights);
 }
 
@@ -38,7 +35,7 @@ void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Ev
     Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
-    Request req = serialize_request(FINAL_PREDICTION, dummy, ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+    Request req = serialize_request(FINAL_PREDICTION, dummy, ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
     make_request(req);
     delete_matrix(compression);
 }
@@ -71,11 +68,8 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
 void Logistic_Regression::enclave_set_sfk()
 {
     Matrix dummy = NULL;
-    Matrix out = mat_init(1, 1);
-    Request req = serialize_request(SET_SFK, this->weights, out, dummy, dummy, 0, 0, 0);
+    Request req = serialize_request(SET_SFK, this->weights, dummy, dummy, dummy, 0, 0, 0);
     make_request(req);
-    mpz_set_str(this->sfk, req->out, 10);
-    //free(req);
 }
 
 /**
@@ -140,7 +134,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         eval.compress(compression, xtrain_batch, this->weights);
 
         // Assign values to request object
-        train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+        train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
         train_req->start_idx = start_idx;
         train_req->batch_size = batchSize;
         make_request(train_req);
@@ -156,7 +150,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         eval.compress(update_compress, xbatch, training_error);
 
         // Assign values to request and wrapper for updating weights
-        Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{this->sfk});
+        Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->p}, mpz_class{ctx->g});
         update_weights_req->start_idx = start_idx;
         update_weights_req->batch_size = batchSize;
         update_weights_req->alpha = alpha;

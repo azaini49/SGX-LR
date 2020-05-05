@@ -1,6 +1,7 @@
 #include "App.h"
 #include <inttypes.h>
 #include <string>
+#include <chrono>
 
 /* Global EID shared by multiple threads */
 extern sgx_enclave_id_t global_eid;
@@ -133,14 +134,15 @@ int main(int argc, char const *argv[])
      * Input Data Processing Ends
      * Setup For Training Begins
      *******************************************************************************************************/
-
+    std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
+    start = std::chrono::high_resolution_clock::now();
     // Create entities required for 
     auto ctx = Context::Create(256);
 
     // Make a request to setup the lookup table for discrete log
     Matrix dummy = NULL;
-    Request req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
-    req->limit = 15;
+    Request req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
+    req->limit = 10;
     make_request(req);
 
     // Generate pk and sk to encrypt xtrain and xtest
@@ -163,15 +165,16 @@ int main(int argc, char const *argv[])
     enc_2.encrypt(xtrainTransEnc, cmt_xtrain_trans, xtrainPlainTrans);
 
     // Generate request for the enclave to setup sk_1 and sk_2 
-    req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
+    req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
     req->key_id = 1;
     make_request(req);
 
-    req = serialize_request(SET_FE_SECRET_KEY, app_sk_2->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g}, mpz_class{0});
+    req = serialize_request(SET_FE_SECRET_KEY, app_sk_2->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
     req->key_id = 2;
     make_request(req);
-
-    //TODO : Encrypt commitments using the enclave pk
+    end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "Setup : " << duration << " microseconds\n";
 
     // Instantiate LR model to train
     Logistic_Regression mdl(ctx, 6, 10.0);
@@ -182,6 +185,9 @@ int main(int argc, char const *argv[])
     transpose(ypred, ypredTrans);
     mdl.compute_performance_metrics(ypred, ytestPlain);
     std::cout << "Accuracy : " << mdl.accuracy << std::endl;
+
+    req = serialize_request(EXIT_ENCLAVE, dummy, dummy, dummy, dummy);
+    make_request(req);
     sgx_destroy_enclave(global_eid);
     
     return 0;

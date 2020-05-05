@@ -36,7 +36,7 @@ void init_response(Response res)
 
 }
 
-Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, mpz_class final_sfk, char* buff)
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, char* buff)
 {
     Request req = init_request(job_id);
     int idx = 0;
@@ -123,29 +123,29 @@ Request serialize_request(int job_id, const Matrix input, const Matrix output, c
         req->buffer[i + idx] = tmp[i];
     idx = idx + sizeof(uintptr_t);
 
-    ptr = mpz_get_str(NULL, BASE, final_sfk.get_mpz_t());
-    upt = reinterpret_cast<uintptr_t>(ptr);
-    tmp = (char*)&upt;
-    for(int i = 0; i < sizeof(uintptr_t); i++)
-        req->buffer[i + idx] = tmp[i];
-    idx = idx + sizeof(uintptr_t);
+    // ptr = mpz_get_str(NULL, BASE, final_sfk.get_mpz_t());
+    // upt = reinterpret_cast<uintptr_t>(ptr);
+    // tmp = (char*)&upt;
+    // for(int i = 0; i < sizeof(uintptr_t); i++)
+    //     req->buffer[i + idx] = tmp[i];
+    // idx = idx + sizeof(uintptr_t);
 
-    if(buff == NULL)
-    {
-        uintptr_t ptr = 0;
-        char* tmp = (char*)&ptr;
-        for(int i = 0; i < sizeof(uintptr_t); i++)
-            req->buffer[i + idx] = tmp[i];
-        idx = idx + sizeof(uintptr_t);
-    }
-    else
-    {
-        uintptr_t ptr = reinterpret_cast<uintptr_t>(buff);
-        char* tmp = (char*)&ptr;
-        for(int i = 0; i < sizeof(uintptr_t); i++)
-            req->buffer[i + idx] = tmp[i];
-        idx = idx + sizeof(uintptr_t);
-    }
+    // if(buff == NULL)
+    // {
+    //     uintptr_t ptr = 0;
+    //     char* tmp = (char*)&ptr;
+    //     for(int i = 0; i < sizeof(uintptr_t); i++)
+    //         req->buffer[i + idx] = tmp[i];
+    //     idx = idx + sizeof(uintptr_t);
+    // }
+    // else
+    // {
+    //     uintptr_t ptr = reinterpret_cast<uintptr_t>(buff);
+    //     char* tmp = (char*)&ptr;
+    //     for(int i = 0; i < sizeof(uintptr_t); i++)
+    //         req->buffer[i + idx] = tmp[i];
+    //     idx = idx + sizeof(uintptr_t);
+    // }
 
     return req;
 }
@@ -201,21 +201,21 @@ void deserialize_request(Response res, Request req)
         mpz_set_str(res->g, reinterpret_cast<char*>(g_p), BASE); 
     idx = idx + sizeof(uintptr_t);
 
-    uintptr_t sfk_p;
-    memcpy(&sfk_p, &req->buffer[idx], sizeof(uintptr_t));
-    if(sfk_p == 0)
-        mpz_set_si(res->final_sfk, 0);
-    else
-        mpz_set_str(res->final_sfk, reinterpret_cast<char*>(sfk_p), BASE); 
-    idx = idx + sizeof(uintptr_t);
+    // uintptr_t sfk_p;
+    // memcpy(&sfk_p, &req->buffer[idx], sizeof(uintptr_t));
+    // if(sfk_p == 0)
+    //     mpz_set_si(res->final_sfk, 0);
+    // else
+    //     mpz_set_str(res->final_sfk, reinterpret_cast<char*>(sfk_p), BASE); 
+    // idx = idx + sizeof(uintptr_t);
 
-    uintptr_t buff_p;
-    memcpy(&buff_p, &req->buffer[idx], sizeof(uintptr_t));
-    if(buff_p == 0)
-        res->out_str = NULL;
-    else
-        res->out_str = reinterpret_cast<char*>(buff_p); 
-    idx = idx + sizeof(uintptr_t);
+    // uintptr_t buff_p;
+    // memcpy(&buff_p, &req->buffer[idx], sizeof(uintptr_t));
+    // if(buff_p == 0)
+    //     res->out_str = NULL;
+    // else
+    //     res->out_str = reinterpret_cast<char*>(buff_p); 
+    // idx = idx + sizeof(uintptr_t);
 
     res->limit = req->limit;
     res->key_id = req->key_id;

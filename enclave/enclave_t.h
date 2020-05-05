@@ -22,7 +22,6 @@
 extern "C" {
 #endif
 
-
 int enclave_service(void* task_queue);
 
 sgx_status_t SGX_CDECL ocall_print_string(const char* str);
