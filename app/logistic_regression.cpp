@@ -29,13 +29,13 @@ Logistic_Regression::~Logistic_Regression()
  * @params : encrypted input, encrypted cmt, evaluator
  * @return : store result in ypred
  */
-void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval)
+void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval, Public_Key pk)
 {
     Timer timer("Prediction Time");
     Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
-    Request req = serialize_request(FINAL_PREDICTION, dummy, ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
+    Request req = serialize_request(FINAL_PREDICTION, pk.data(), ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
     make_request(req);
     delete_matrix(compression);
 }
@@ -95,6 +95,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
 
     // Initialize the weights to a zero vector
     this->weights = mat_init(1, xtrain_enc->cols);
+    make_zero(this->weights);
 
     // Initialize L2 regularization constant as alpha
     float alpha = 1.0/this->lambda;

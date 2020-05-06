@@ -3,6 +3,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+int SECURITY_BITS = 256;
+
 Request init_request(int job_id)
 {
     Request req = (Request)malloc(sizeof(Request) + 6*sizeof(int) + 2*sizeof(float) + 2000*sizeof(char));

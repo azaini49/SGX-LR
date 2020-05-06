@@ -10,7 +10,6 @@ class Public_Key
         int key_len;
         Public_Key(Matrix mat) = delete;
         Public_Key(int key_len) = delete;
-        const Matrix data() const;
     public:
         Public_Key();
         Public_Key(const Public_Key &copy);
@@ -18,6 +17,7 @@ class Public_Key
         int length();
         void init(int key_len);
         void print();
+        const Matrix data() const;
         friend class Keygen;
         friend class Encryptor;
 };

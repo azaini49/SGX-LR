@@ -14,6 +14,8 @@
 #define FAILURE -1
 #endif
 
+extern int SECURITY_BITS;
+
 // Store the secret keys in the enclave
 Secret_Key sk_1;
 Secret_Key sk_2;
@@ -76,10 +78,11 @@ int compute_lookup_table(Response res)
  * Decrypt commitments and compute the FE result
  * Currently commitments are not encfypted
  * Supports num_threads = 1
+ * input -> pk
  */
-int evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk, int activation, Response res, int start, int end, int mode)
+int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, int mode)
 {
-    if(dest == NULL || compression == NULL || cmt == NULL)
+    if(res->output == NULL || res->compression == NULL || res->cmt == NULL)
         return ERROR;
     int row = 0;
     mpz_t ct0;
@@ -89,17 +92,30 @@ int evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_
     mpz_init(tmp);
 
     if(end == -1)
-        end = dest->rows - 1;
+        end = res->output->rows - 1;
+
+    // Generate random nonce
+    mpz_t nonce;
+    mpz_init(nonce);
+
+    mpz_t tmp2;
+    mpz_init2(tmp2, SECURITY_BITS);
+
+    mpz_t tmp3;
+    mpz_init2(tmp3, SECURITY_BITS);
+
+    // Create random state to use as seed
+    gmp_randstate_t state;
+    gmp_randinit_mt(state);
 
     while(row < end + 1)
     {
-        //printf_enclave("Evaluate Row : %d\n", row);
-        mpz_set(ct0, mat_element(cmt, row, 0));
+        mpz_set(ct0, mat_element(res->cmt, row, 0));
         mpz_powm(ct0, ct0, sfk, res->p);
         mpz_invert(ct0, ct0, res->p);
         mpz_set_si(tmp, 1);
 
-        mpz_mul(tmp, mat_element(compression, row, 0), ct0);
+        mpz_mul(tmp, mat_element(res->compression, row, 0), ct0);
         mpz_mod(tmp, tmp, res->p);
         get_discrete_log(tmp, res->p);
         if(activation == ACTIVATION)
@@ -107,13 +123,27 @@ int evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_
 
         if(mode == ENCRYPT)
         {
-            // Encrypt tmp using enclave pk
+            mpz_urandomm(nonce, state, res->p);
+            mpz_add_ui(nonce, nonce, 2);
+            mpz_mod(nonce, nonce, res->p);
+
+            // Set ct0 = g^r
+            mpz_powm(mat_element(res->cmt, row, 0),res->g, nonce, res->p);
+
+            mpz_powm(tmp2, mat_element(res->input, 0, 0), nonce, res->p);
+            mpz_set(tmp3, tmp2);
+            mpz_powm(tmp2, res->g, tmp, res->p);
+            mpz_mul(tmp3, tmp3, tmp2);
+            mpz_mod(mat_element(res->output, row, 0), tmp3, res->p);
         }
         else
-            mpz_set(mat_element(dest, 0, row), tmp);
+            mpz_set(mat_element(res->output, row, 0), tmp);
         row = row + 1;
     }
     mpz_clear(tmp);
+    mpz_clear(tmp2);
+    mpz_clear(tmp3);
+    mpz_clear(nonce);
     mpz_clear(ct0);
     return COMPLETED;
 }
@@ -148,13 +178,7 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
         get_discrete_log(tmp, res->p);
         if(activation == ACTIVATION)
             sigmoid(tmp, mpz_get_d(tmp));
-
-        if(mode == ENCRYPT)
-        {
-            // Encrypt tmp using enclave pk
-        }
-        else
-            mpz_set(mat_element(dest, 0, row), tmp);
+        mpz_set(mat_element(dest, row, 0), tmp);
         row = row + 1;
     }
     mpz_clear(tmp);
@@ -230,13 +254,13 @@ int update_weights(Response res)
     return COMPLETED;
 }
 
-// input_1 -> null
+// input_1 -> pk
 // output -> ypred
 int predict_final(Response res)
 {
-    if(res->output == NULL || res->compression == NULL || res->cmt == NULL)
+    if(res->input == NULL || res->output == NULL || res->compression == NULL || res->cmt == NULL)
         return ERROR;
-    int result = evaluate(res->output, res->compression, res->cmt, sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
+    int result = evaluate(sfk, ACTIVATION, res, 0, -1, ENCRYPT);
     return result;
 }
 
@@ -247,7 +271,7 @@ int predict_train(Response res)
     if(res->output == NULL || res->compression == NULL || res->cmt == NULL || res->input == NULL)
         return ERROR;
     row_inner_product(sfk, res->input, sk_1.data());
-    int result = evaluate(res->output, res->compression, res->cmt, sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
+    int result = evaluate(sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT);
 
     return result;
 }

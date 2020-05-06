@@ -2,6 +2,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+extern int SECURITY_BITS;
+
 //initialize the matrix
 Matrix mat_init(int rows, int cols)
 {
@@ -18,8 +20,7 @@ Matrix mat_init(int rows, int cols)
   {
     for(int j = 0; j < cols; j++)
     {
-      mpz_init(mat_element(A, i, j));
-      mpz_set_si(mat_element(A, i, j), 0);
+      mpz_init2(mat_element(A, i, j), SECURITY_BITS);
     }
   }
   return A;
@@ -39,9 +40,7 @@ void get_matrix_element(mpz_t result, Matrix mat, int row_idx, int col_idx)
 {
   if(row_idx < 0 || row_idx >= mat->rows || col_idx < 0 || col_idx >= mat->cols)
   {
-    //printf("Matrix index out of range\n");
     return;
-    //exit(1);
   }
   mpz_set(result, mat_element(mat, row_idx, col_idx));
 }
@@ -109,13 +108,6 @@ int transpose(Matrix B, Matrix A, int row1, int row2, int col1, int col2)
   if(B->rows != (col2 - col1 + 1) || B->cols != (row2 - row1 + 1))
   {
     return -1;
-    // std::cout << "r2 - r1 + 1 : " << row2 - row1 + 1 << std::endl;
-    // std::cout << "c2 - c1 + 1 : " << col2 - col1 + 1 << std::endl;
-    // std::cout << "Error: Incompatible matrix dimensions.\n";
-    // std::cout << "Dimensions provided:\n";
-    // std::cout << "B: " << B->rows << " x " << B->cols << std::endl;
-    // std::cout << "A: " << A->rows << " x " << A->cols << std::endl;
-    //exit(1);
   }
 
   for(int i = row1; i < row2 + 1; i++)
@@ -138,13 +130,6 @@ int transpose_e(E_Matrix B, E_Matrix A, int row1, int row2, int col1, int col2)
   if(B->rows != (col2 - col1 + 1) || B->cols != (row2 - row1 + 1))
   {
     return -1;
-    // std::cout << "r2 - r1 + 1 : " << row2 - row1 + 1 << std::endl;
-    // std::cout << "c2 - c1 + 1 : " << col2 - col1 + 1 << std::endl;
-    // std::cout << "Error: Incompatible matrix dimensions.\n";
-    // std::cout << "Dimensions provided:\n";
-    // std::cout << "B: " << B->rows << " x " << B->cols << std::endl;
-    // std::cout << "A: " << A->rows << " x " << A->cols << std::endl;
-    //exit(1);
   }
 
   for(int i = row1; i < row2 + 1; i++)
@@ -176,36 +161,23 @@ int row_inner_product(mpz_t result, Matrix const A, Matrix const B, int mod, int
 
      if(colEnd_A - colBegin_A != colEnd_B - colBegin_B)
     {
-        // std::cout << "[ROW_IP] Matrix dimensions are incompatible\n";
-        // std::cout << "A : " << A->rows << " x " << A->cols << std::endl;
-        // std::cout << "B : " << B->rows << " x " << B->cols << std::endl;
-        //exit(EXIT_FAILURE);
         return -1;
     }
 
     // Check if specified row is valid
     if(rowIdx_A < 0 || rowIdx_A >= A->rows || rowIdx_B >= B->rows || rowIdx_B < 0)
     {
-        //throw std::invalid_argument("[ROW_IP] Invalid dimensions!");
         return -1;
     }
 
     // Check if specified column range is valid
     if(colBegin_A < 0 || colEnd_A < 0 || colBegin_A > colEnd_A || colEnd_A >= A->cols)
     {
-        // std::cout << "[ROW_IP] Specified column range is invalid\n";
-        // std::cout << "Range expected  : [0, " << A->cols - 1 << "]\n"; 
-        // std::cout << "Received column index : " << "[" << colBegin_A << ", " << colEnd_A << "]\n"; 
-        // throw std::invalid_argument("Invalid dimensions!");
         return -1;
     }
 
     if(colBegin_B < 0 || colEnd_B < 0 || colBegin_B > colEnd_B || colEnd_B >= B->cols)
     {
-        // std::cout << "[ROW_IP] Specified column range is invalid\n";
-        // std::cout << "Range expected  : [0, " << B->cols - 1 << "]\n"; 
-        // std::cout << "Received column index : " << "[" << colBegin_B << ", " << colEnd_B << "]\n"; 
-        // throw std::invalid_argument("Invalid dimensions!");
         return -1;
     }
 

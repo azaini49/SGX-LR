@@ -4,15 +4,103 @@
 #include <math.h>
 #include <iostream>
 #include "../include/Queue.h"
-//#include <mutex>
+#include <mutex>
+#include <map>
+#include <cmath>
 #include "../include/sync_utils.hpp"
+#include "../tools/gmpxx.h"
 
 
 extern Queue* task_queue;
+static std::map<mpz_class, mpz_class> lookup;
+std::mutex gaurd;
+
+int sigmoid(mpz_t res, double x)
+{
+    float expVal;
+    float result;
+
+    // Compute the exponent
+    expVal = exp(-x);
+
+    // Compute the sigmoid function
+    result = 1 / (1 + expVal);
+    double tmp = ceil(result);
+    if(result <= 0.5)
+        tmp = floor(result);
+    mpz_set_si(res, tmp);
+    return COMPLETED;
+}
+
+// Utility function to generate lookup table
+void lookup_table_util(mpz_class limit, std::shared_ptr<Context> ctx, int tid, int numThreads)
+{
+    // Temporary variable
+    mpz_t tmp;
+    mpz_init(tmp);
+
+    mpz_class i = tid;
+    while(i < limit)
+    {
+        mpz_powm(tmp, ctx->g, i.get_mpz_t(), ctx->p);
+        std::unique_lock<std::mutex> locker(gaurd);
+        lookup[mpz_class{tmp}] = i;
+        mpz_invert(tmp, tmp, ctx->p);
+        lookup[mpz_class{tmp}] = -i;
+        locker.unlock();
+        i = i + numThreads;
+    }
+    mpz_clear(tmp);
+}
+
+// Precompute the lookup table
+void compute_lookup_table(std::shared_ptr<Context> ctx, int bits)
+{
+    if(ctx == NULL)
+    {
+        std::cout << "Context is NULL (Lookup table construction)\n";
+        exit(1);
+    }
+    mpz_t tmp;
+    mpz_init(tmp);
+
+    mpz_class i = 0;
+    mpz_class new_m = pow(2, bits);
+
+    // Define threadpool
+    int numThreads = std::thread::hardware_concurrency();
+    std::thread threads[numThreads];
+    for(int i = 0; i < numThreads; i++)
+    {
+        threads[i] = std::thread(lookup_table_util, new_m, ctx, i, numThreads);
+    }
+    for(int i = 0; i < numThreads; i++)
+        threads[i].join();
+    mpz_class k = 1;
+    mpz_clear(tmp);
+}
+
+// Straight forward lookup in lookup table
+void get_discrete_log(mpz_t x, std::shared_ptr<Context> ctx)
+{
+    mpz_class key{x};
+    std::map<mpz_class, mpz_class, MapComp>::iterator it = lookup.find(key);
+    if(it == lookup.end())
+    {
+        mpz_invert(x, x, ctx->p);
+        mpz_class key{x};
+        it = lookup.find(key);
+        if(it == lookup.end())
+            mpz_set_si(x, -1);
+        else
+            mpz_mul_si(x, it->second.get_mpz_t(), -1);
+    }
+    else
+        mpz_set(x, it->second.get_mpz_t());
+}
 
 void make_request(Request req)
 {
-    //std::cout << "Making request : " << req->job_id << std::endl;
     req->status = SCHEDULED;
     task_queue->enqueue(req);
     while(true)
@@ -21,7 +109,6 @@ void make_request(Request req)
             __asm__("pause");
         else
         {
-            //std::cout << "[" << req->job_id << "] : " << req->status << std::endl;
             if(req->status == ERROR)
             {
                 spin_unlock(&req->status);
@@ -33,7 +120,6 @@ void make_request(Request req)
     }
     // Reset request. Do not free data!!
     req->status = IDLE;
-    //free(req);
 }
 
 /**

@@ -22,12 +22,11 @@
 
 #define BASE 16
 
-
-
 #include "../tools/matrix_shared.h"
 #include "../tools/sgx_tgmp.h"
 #include "../tools/gmpxx.h"
 #include <stdint.h>
+#include <sgx_tcrypto.h>
 
 typedef struct response
 {

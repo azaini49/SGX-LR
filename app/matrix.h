@@ -64,6 +64,7 @@ void swap(Matrix A, int row1, int row2);
 void matrix_mult(Matrix C, Matrix A, Matrix B, int mod = -1);
 void row_major_multiplication(Matrix result, Matrix A, Matrix B, int mod = -1);
 void make_indentity(Matrix A);
+void make_zero(Matrix A);
 bool is_identity(Matrix A);
 int is_zero_matrix(Matrix A);
 bool mat_is_equal(Matrix A, Matrix B, int row1 = 0, int row2 = -1, int col1 = 0, int col2 = -1);

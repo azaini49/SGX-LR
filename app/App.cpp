@@ -7,6 +7,8 @@
 extern sgx_enclave_id_t global_eid;
 Queue* task_queue;
 
+extern int SECURITY_BITS;
+
 // Variable indidcating whether the enclave thread has been launched
 bool enclave_running = false;
 
@@ -67,10 +69,6 @@ int main(int argc, char const *argv[])
         exit(EXIT_FAILURE); 
     }
 
-    /**
-     * TODO : Call function to initialize the enclave pk/sk pair
-     */
-
 
     // Retrive training and testing data to process from csv files
     // Get csv contents containing train data
@@ -105,6 +103,7 @@ int main(int argc, char const *argv[])
     Matrix ytestPlain = mat_init(1, xtestRow);
     Matrix ypred = mat_init(ytestPlain->rows, ytestPlain->cols);
     Matrix ypredTrans = mat_init(ypred->cols, ypred->rows);
+    Matrix ypredTrans2 = mat_init(ypred->cols, ypred->rows);
     Matrix xtrainEnc = mat_init(xtrainPlain->rows, xtrainPlain->cols);
     Matrix xtrainTransEnc = mat_init(xtrainPlainTrans->rows, xtrainPlainTrans->cols);
     Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
@@ -134,10 +133,13 @@ int main(int argc, char const *argv[])
      * Input Data Processing Ends
      * Setup For Training Begins
      *******************************************************************************************************/
+    
     std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
     start = std::chrono::high_resolution_clock::now();
-    // Create entities required for 
-    auto ctx = Context::Create(256);
+    
+    // Create entities required for
+    SECURITY_BITS = 256;
+    auto ctx = Context::Create(SECURITY_BITS);
 
     // Make a request to setup the lookup table for discrete log
     Matrix dummy = NULL;
@@ -181,8 +183,16 @@ int main(int argc, char const *argv[])
     mdl.train(xtrainEnc, xtrainTransEnc, ytrainPlain, cmt_xtrain, cmt_xtrain_trans, 256, 0.0004);
 
     Evaluator eval(ctx);
-    mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval);
-    transpose(ypred, ypredTrans);
+    Keygen keygen_3(ctx, 1);
+    Public_Key pk_3 = keygen_3.public_key();
+    Secret_Key app_sk_3 = keygen_3.secret_key();
+
+    //Create app lookup table
+    compute_lookup_table(ctx, 10);
+
+    mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval, pk_3);
+    eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_3.data(), 0, 0));
+    transpose(ypred, ypredTrans2);
     mdl.compute_performance_metrics(ypred, ytestPlain);
     std::cout << "Accuracy : " << mdl.accuracy << std::endl;
 
