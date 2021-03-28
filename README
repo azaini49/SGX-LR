@@ -2,21 +2,24 @@
 
 [x] Build GMP library (configure build with --enable-cxx) (https://gmplib.org/gmp-man-6.2.1.pdf)
 
-TODO: some of this stuff is already installed, just need to find it (weird places),
-some of it requires sudo permission, which we don't currently have
-
 In this order (Intel_SGX_Installation_Guide_Linux_2.13_Open_Source)
-[ ] Build SGX Pre-Reqs
-[ ] Build SGX Driver
-[ ] Build SGX PSW
+[x] Build SGX Pre-Reqs
+[x] Build SGX Driver (without ECDSA attestation)
+Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars after reinitializing
+
+[x] Build SGX PSW
+[ ] Build SGX PSW RPM
 [ ] Build SGX SDK 
 
 [ ] set appropriate directories in Makefile
 [ ] set debug mode, etc, in Makefile
 
 
+# RUN
+
 make (hw, debug, etc parameters)
 
-# API INSTRUCTIONS
+
+# DOCUMENTATION
 
 TODO: We should create a guide here
