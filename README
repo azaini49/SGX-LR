@@ -8,10 +8,10 @@ In this order (Intel_SGX_Installation_Guide_Linux_2.13_Open_Source)
 Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars after reinitializing
 
 [x] Build SGX PSW
-[ ] Build SGX PSW RPM
-[ ] Build SGX SDK 
+[x] Build SGX SDK 
+Note: mitigation tools?
 
-[ ] set appropriate directories in Makefile
+[x] set appropriate directories in Makefile
 [ ] set debug mode, etc, in Makefile
 
 
