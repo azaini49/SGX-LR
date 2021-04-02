@@ -9,11 +9,8 @@ the rest of those install instructions! - follow mine)
 wget https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.13.100.4.bin
 chmod a+x sgx_linux_x64_sdk_2.13.100.4.bin
 ./sgx_linux_x64_sdk_2.13.100.4.bin
-
 ```
-
 - Source environment variables according to instructions
-
 - Get modified SGX GMP
 ```
 mkdir sgxgmp_build
@@ -23,11 +20,11 @@ cd sgx-gmp
 make
 make install
 ```
-
 - Clone SGX-LR
 - Change SGX-LR Makefile to reflect correct SDK and GMP build directories (should be correct already)
 
 ```
+cd SGX-LR
 make
 ./sgx_lr_exec
 ```
