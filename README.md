@@ -26,16 +26,6 @@ make install
 - Clone SGX-LR
 - Change SGX-LR Makefile to reflect correct SDK and GMP build directories (should be correct already)
 
-Run:
-
-```
-cd SGX-LR
-make
-./sgx_lr_exec
-```
-
-
-
 
 # INSTALL NOTES FOR BIG MACHINE
 
@@ -55,6 +45,24 @@ Reference: https://download.01.org/intel-sgx/sgx-linux/2.13/docs/Intel_SGX_Insta
 [x] set appropriate directories in Makefile
 
 
+# RUN
+
+Source environment variables
+On big machine:
+```
+export SGX_SDK=/home/jess/sgxsdk
+export PATH=$PATH:$SGX_SDK/bin:$SGX_SDK/bin/x64
+export PKG_CONFIG_PATH=$PKG_CONFIG_PATH:$SGX_SDK/pkgconfig
+export LD_LIBRARY_PATH=$SGX_SDK/sdk_libs
+```
+Locally: `source sgxsdk/environment`
+
+Compile and run:
+```
+cd SGX-LR
+make
+./sgx_lr_exec
+```
 
 # DOCUMENTATION
 
