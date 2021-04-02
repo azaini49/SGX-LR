@@ -4,7 +4,10 @@
   https://github.com/intel/linux-sgx#install-the-intelr-sgx-sdk (Do not follow
 the rest of those install instructions! - follow mine)
 	
-- Get SDK Installer (note: driver not needed)
+- Get SDK Installer (note: driver not needed) from here:
+  https://01.org/intel-software-guard-extensions/downloads
+- Below is my execution for my ubuntu20.04 Linux VM - yours might be a little
+  different
 ```
 wget https://download.01.org/intel-sgx/sgx-linux/2.13/distro/ubuntu20.04-server/sgx_linux_x64_sdk_2.13.100.4.bin
 chmod a+x sgx_linux_x64_sdk_2.13.100.4.bin
@@ -23,16 +26,13 @@ make install
 - Clone SGX-LR
 - Change SGX-LR Makefile to reflect correct SDK and GMP build directories (should be correct already)
 
+Run:
+
 ```
 cd SGX-LR
 make
 ./sgx_lr_exec
 ```
-
-
-
-
-
 
 
 
@@ -54,12 +54,6 @@ Reference: https://download.01.org/intel-sgx/sgx-linux/2.13/docs/Intel_SGX_Insta
 
 [x] set appropriate directories in Makefile
 
-
-# RUN
-
-Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars after reinitializing
-
-make
 
 
 # DOCUMENTATION
