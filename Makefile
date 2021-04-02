@@ -1,10 +1,10 @@
 ######## SGX SDK Settings ########
 
-SGX_SDK ?= /home/jess/sgxsdk
-SGX_MODE ?= HW
+SGX_SDK ?= ../sgxsdk
+SGX_MODE ?= SIM
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
-SGX_GMP = /home/jess/build-sgx-gmp
+SGX_GMP = ../sgxgmp_build
 
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
@@ -72,7 +72,7 @@ endif
 
 App_Cpp_Objects := $(App_Cpp_Files:.cpp=.o)
 
-App_Name := a
+App_Name := sgx_lr_exec
 
 ######## Enclave Settings ########
 
