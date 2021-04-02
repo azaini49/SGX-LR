@@ -66,4 +66,12 @@ make
 
 # DOCUMENTATION
 
-TODO: We should create a guide here
+**App**
+launch_enclave()
+- sets up secure SGX enclave
+- returns success/error
+
+
+
+
+
