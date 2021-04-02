@@ -1,8 +1,8 @@
 # INSTALL LOCAL
 
-- Use Linux/Linux VM, see PreReqs here: https://github.com/intel/linux-sgx#install-the-intelr-sgx-sdk
-
-(Do not follow the rest of these install instructions!)
+- Use Linux/Linux VM, see PreReqs here:
+  https://github.com/intel/linux-sgx#install-the-intelr-sgx-sdk (Do not follow
+the rest of those install instructions! - follow mine)
 	
 - Get SDK Installer (note: driver not needed)
 ```
