@@ -4,7 +4,7 @@
   https://github.com/intel/linux-sgx#install-the-intelr-sgx-sdk (Do not follow
 the rest of those install instructions! - follow mine)
 	
-- Get SDK Installer (note: driver not needed) from here:
+- Get the latest DCAP version of the SDK Installer (note: driver not needed) for your specific system from here:
   https://01.org/intel-software-guard-extensions/downloads
 - Below is my execution for my ubuntu20.04 Linux VM - yours might be a little
   different
