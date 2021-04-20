@@ -160,7 +160,7 @@ void deserialize_request(Response res, Request req)
     if(inp_p == 0)
         res->input = NULL;
     else
-        res->input = reinterpret_cast<Matrix>(inp_p); 
+        res->input = reinterpret_cast<Matrix>(inp_p);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t out_p;
@@ -168,7 +168,7 @@ void deserialize_request(Response res, Request req)
     if(out_p == 0)
         res->output = NULL;
     else
-        res->output = reinterpret_cast<Matrix>(out_p); 
+        res->output = reinterpret_cast<Matrix>(out_p);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t comp_p;
@@ -176,7 +176,7 @@ void deserialize_request(Response res, Request req)
     if(comp_p == 0)
         res->compression = NULL;
     else
-        res->compression = reinterpret_cast<Matrix>(comp_p); 
+        res->compression = reinterpret_cast<Matrix>(comp_p);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t cmt_p;
@@ -184,7 +184,7 @@ void deserialize_request(Response res, Request req)
     if(cmt_p == 0)
         res->cmt = NULL;
     else
-        res->cmt = reinterpret_cast<Matrix>(cmt_p); 
+        res->cmt = reinterpret_cast<Matrix>(cmt_p);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t p_p;
@@ -192,7 +192,7 @@ void deserialize_request(Response res, Request req)
     if(p_p == 0)
         mpz_set_si(res->p, 0);
     else
-        mpz_set_str(res->p, reinterpret_cast<char*>(p_p), BASE); 
+        mpz_set_str(res->p, reinterpret_cast<char*>(p_p), BASE);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t g_p;
@@ -200,7 +200,7 @@ void deserialize_request(Response res, Request req)
     if(g_p == 0)
         mpz_set_si(res->g, 0);
     else
-        mpz_set_str(res->g, reinterpret_cast<char*>(g_p), BASE); 
+        mpz_set_str(res->g, reinterpret_cast<char*>(g_p), BASE);
     idx = idx + sizeof(uintptr_t);
 
     // uintptr_t sfk_p;
@@ -208,7 +208,7 @@ void deserialize_request(Response res, Request req)
     // if(sfk_p == 0)
     //     mpz_set_si(res->final_sfk, 0);
     // else
-    //     mpz_set_str(res->final_sfk, reinterpret_cast<char*>(sfk_p), BASE); 
+    //     mpz_set_str(res->final_sfk, reinterpret_cast<char*>(sfk_p), BASE);
     // idx = idx + sizeof(uintptr_t);
 
     // uintptr_t buff_p;
@@ -216,7 +216,7 @@ void deserialize_request(Response res, Request req)
     // if(buff_p == 0)
     //     res->out_str = NULL;
     // else
-    //     res->out_str = reinterpret_cast<char*>(buff_p); 
+    //     res->out_str = reinterpret_cast<char*>(buff_p);
     // idx = idx + sizeof(uintptr_t);
 
     res->limit = req->limit;
@@ -226,4 +226,3 @@ void deserialize_request(Response res, Request req)
     res->alpha = req->alpha;
     res->learning_rate = req->learning_rate;
 }
-

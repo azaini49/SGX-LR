@@ -31,6 +31,3 @@ int transpose(Matrix B, Matrix A, int row1 = 0, int row2 = -1, int col1 = 0, int
 int transpose_e(E_Matrix B, E_Matrix A, int row1 = 0, int row2 = -1, int col1 = 0, int col2 = -1);
 void mat_copy(Matrix B, const Matrix A);
 int row_inner_product(mpz_t result, const Matrix A, const Matrix B, int mod = -1, int rowIdx_A = 0, int rowIdx_B = -1, int colBegin_A = 0, int colEnd_A = -1, int colBegin_B = 0, int colEnd_B = -1);
-
-
-

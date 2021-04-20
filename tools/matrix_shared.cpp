@@ -14,8 +14,8 @@ Matrix mat_init(int rows, int cols)
   Matrix A;
   A = (Matrix)malloc(sizeof(Matrix) + (rows*cols)*sizeof(mpz_t));
   A->cols = cols;
-  A->rows = rows; 
-  A->data = (mpz_t *)malloc(rows*cols*sizeof(mpz_t)); 
+  A->rows = rows;
+  A->data = (mpz_t *)malloc(rows*cols*sizeof(mpz_t));
   for(int i = 0; i < rows; i++)
   {
     for(int j = 0; j < cols; j++)
@@ -152,7 +152,7 @@ int row_inner_product(mpz_t result, Matrix const A, Matrix const B, int mod, int
 {
     if(rowIdx_B == -1)
         rowIdx_B = rowIdx_A;
-        
+
     if(colEnd_A == -1)
         colEnd_A = A->cols - 1;
 

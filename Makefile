@@ -6,6 +6,9 @@ SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
 SGX_GMP = ../sgxgmp_build
 
+CC = g++
+CXX = g++
+
 ifeq ($(shell getconf LONG_BIT), 32)
 	SGX_ARCH := x86
 else ifeq ($(findstring -m32, $(CXXFLAGS)), -m32)
@@ -31,7 +34,7 @@ endif
 endif
 
 ifeq ($(SGX_DEBUG), 1)
-        SGX_COMMON_CFLAGS += -O0 -g
+        SGX_COMMON_CFLAGS += -O0 -g -Wall -Wextra
 else
         SGX_COMMON_CFLAGS += -O2
 endif
