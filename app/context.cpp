@@ -27,7 +27,7 @@ Context::Context(int security_level, mpz_t prime, mpz_t gen)
     }
     else
         mpz_set(this->p, prime);
-        
+
     // Initialize generator
     if(gen == NULL)
         generator();
@@ -62,7 +62,7 @@ void Context::generate_safe_prime(int bits)
     {
         mpz_nextprime(q, num);
         mpz_addmul_ui(this->p, q, 2);
-        
+
         if(mpz_probab_prime_p(this->p, 30) > 0)
             break;
         mpz_set_si(this->p, 1);
@@ -116,7 +116,7 @@ void Context::generator()
 
         mpz_sub_ui(tmp, this->p, 1);
         mpz_fdiv_r(rem, tmp, this->g);
-        
+
         if(safe == 1 && mpz_cmp_ui(rem, 0) == 0)
             safe = 0;
 
@@ -126,7 +126,7 @@ void Context::generator()
         if(safe == 1 && mpz_cmp_si(rem, 0) == 0)
             safe = 0;
         if(safe == 1)
-            break;  
+            break;
     }
     // Clear temporary variables
     mpz_clear(q);

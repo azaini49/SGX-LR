@@ -42,8 +42,10 @@ void Keygen::generate_sk_util(Keygen &gen, int tid, gmp_randstate_t state, int n
     while(col < gen.msk_len)
     {
         // Set position in secret key
-        mpz_urandomm(val, state, gen.context->p);
-        mpz_add_ui(val, val, 2);
+      //  mpz_urandomm(val, state, gen.context->p);
+        mpz_set_si(val, 1); // jess code
+
+        mpz_add_ui(val, val, 2); // issue
         mpz_mod(val, val, gen.context->p);
         set_matrix_element(gen.sk.data_, 0, col, val);
 

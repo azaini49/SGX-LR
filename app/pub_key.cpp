@@ -1,5 +1,6 @@
 #include "pub_key.h"
 #include "matrix.h"
+#include <iostream>
 
 Public_Key::Public_Key(){}
 
@@ -23,6 +24,7 @@ void Public_Key::init(int key_len)
 
 const Matrix Public_Key::data() const
 {
+    printf("pk: %ld\n", mpz_get_si(mat_element(this->data_,0,1)));
     return this->data_;
 }
 

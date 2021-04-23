@@ -95,49 +95,49 @@ int main(int argc, char const *argv[])
     // Populate the matices
     //populate(testInp, xtest);
     mpz_t v;
-    mpz_init_set_si(v, 1);
+    mpz_init_set_si(v, 19);
     set_matrix_element(testInp, 0, 0, v); // "label"
     set_matrix_element(testInp, 1, 0, v); // "label"
     set_matrix_element(testInp, 2, 0, v); // "label"
     set_matrix_element(testInp, 3, 0, v); // "label"
     set_matrix_element(testInp, 4, 0, v); // "label"
     mpz_t w;
-    mpz_init_set_si(w, 2);
+    mpz_init_set_si(w, 24);
     set_matrix_element(testInp, 0, 1, w); // "label"
     set_matrix_element(testInp, 1, 1, w); // "label"
     set_matrix_element(testInp, 2, 1, w); // "label"
     set_matrix_element(testInp, 3, 1, w); // "label"
     set_matrix_element(testInp, 4, 1, w); // "label"
     mpz_t x;
-    mpz_init_set_si(x, 3);
+    mpz_init_set_si(x, 19);
     set_matrix_element(testInp, 0, 2, x);
     set_matrix_element(testInp, 1, 2, x);
     set_matrix_element(testInp, 2, 2, x);
     set_matrix_element(testInp, 3, 2, x);
     set_matrix_element(testInp, 4, 2, x);
     mpz_t y;
-    mpz_init_set_si(y, 4);
+    mpz_init_set_si(y, 24);
     set_matrix_element(testInp, 0, 3, y);
     set_matrix_element(testInp, 1, 3, y);
     set_matrix_element(testInp, 2, 3, y);
     set_matrix_element(testInp, 3, 3, y);
     set_matrix_element(testInp, 4, 3, y);
     mpz_t z;
-    mpz_init_set_si(z, 5);
+    mpz_init_set_si(z, 24);
     set_matrix_element(testInp, 0, 4, z);
     set_matrix_element(testInp, 1, 4, z);
     set_matrix_element(testInp, 2, 4, z);
     set_matrix_element(testInp, 3, 4, z);
     set_matrix_element(testInp, 4, 4, z);
     mpz_t o;
-    mpz_init_set_si(o, 6);
+    mpz_init_set_si(o, 19);
     set_matrix_element(testInp, 0, 5, o);
     set_matrix_element(testInp, 1, 5, o);
     set_matrix_element(testInp, 2, 5, o);
     set_matrix_element(testInp, 3, 5, o);
     set_matrix_element(testInp, 4, 5, o);
     mpz_t p;
-    mpz_init_set_si(p, 7);
+    mpz_init_set_si(p, 24);
     set_matrix_element(testInp, 0, 6, p);
     set_matrix_element(testInp, 1, 6, p);
     set_matrix_element(testInp, 2, 6, p);
@@ -152,20 +152,26 @@ int main(int argc, char const *argv[])
     mat_splice(tmp2, testInp, 0, testInp->rows-1, testInp->cols-1, testInp->cols-1);
     transpose(ytestPlain, tmp2);
 
-/*
+
     for (int i = 0; i < xtestPlain->cols; i++){
       printf("x plain: %ld\n", mpz_get_si(mat_element(xtestPlain, 0, i)));
       //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
     }
-*/
+
 
     std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
     start = std::chrono::high_resolution_clock::now();
 
     // Create entities required for
     SECURITY_BITS = 256;
-    auto ctx = Context::Create(SECURITY_BITS);
+    mpz_t prime;
+    mpz_t gen;
+    mpz_init_set_si(prime, 13);
+    mpz_init_set_si(gen, 3);
+
+    auto ctx = Context::Create(SECURITY_BITS, prime, gen);
     printf("context: generator=%ld\n", mpz_get_si(ctx->g));
+    printf("context: prime=%ld\n", mpz_get_si(ctx->p));
 
     // Make a request to setup the lookup table for discrete log/
     Matrix dummy = NULL;
@@ -177,9 +183,12 @@ int main(int argc, char const *argv[])
     // Generate pk and sk to encrypt xtest
     Keygen keygen_1(ctx, xtestPlain->cols);
     Public_Key pk_1 = keygen_1.public_key();
+
+
     std::shared_ptr<Secret_Key> app_sk_1 = std::make_unique<Secret_Key>(keygen_1.secret_key());
     std::cout << "keys\n";
-
+    //printf("pk=%ld\n", mpz_get_si(pk_1));
+    //printf("sk=%ld\n", mpz_get_si(app_sk_1));
 
     Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
     Matrix cmt_xtest = mat_init(xtestEnc->rows, 1);
@@ -188,12 +197,15 @@ int main(int argc, char const *argv[])
     // Instantiate encryptor
     Encryptor enc_1(ctx, pk_1);
     enc_1.encrypt(xtestEnc, cmt_xtest, xtestPlain);
-/*
-    for (int i = 0; i < cmt_xtest->rows; i++){
-      printf("x enc: %ld\n", mpz_get_si(mat_element(xtestEnc, i, 0)));
-      //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
+
+    for (int i = 0; i < xtestEnc->rows; i++){
+      printf("x          cmt: %ld\n", mpz_get_si(mat_element(cmt_xtest, i, 0)));
+      for (int j = 0; j < xtestEnc->cols; j++){
+        printf("x enc: %ld\n", mpz_get_si(mat_element(xtestEnc, i, j)));
+        //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
+      }
     }
-*/
+
     // Generate request for the enclave to setup sk_1
     req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
     req->key_id = 1;
@@ -218,25 +230,25 @@ int main(int argc, char const *argv[])
     // weights
     Matrix weights = mat_init(1, xtestEnc->cols); //xtestEnc->cols);
     mpz_t a;
-    mpz_init_set_si(a, 4);
+    mpz_init_set_si(a, 5);
     set_matrix_element(weights, 0, 0, a);
     mpz_t b;
-    mpz_init_set_si(b, 2);
+    mpz_init_set_si(b, 5);
     set_matrix_element(weights, 0, 1, b);
     mpz_t c;
-    mpz_init_set_si(c, 3);
+    mpz_init_set_si(c, 5);
     set_matrix_element(weights, 0, 2, c);
     mpz_t d;
-    mpz_init_set_si(d, 4);
+    mpz_init_set_si(d, 5);
     set_matrix_element(weights, 0, 3, d);
     mpz_t e;
     mpz_init_set_si(e, 5);
     set_matrix_element(weights, 0, 4, e);
     mpz_t f;
-    mpz_init_set_si(f, 6);
+    mpz_init_set_si(f, 5);
     set_matrix_element(weights, 0, 5, e);
     mpz_t g;
-    mpz_init_set_si(g, 7);
+    mpz_init_set_si(g, 5);
     set_matrix_element(weights, 0, 7, e);
 
     std::cout << "weights?\n";

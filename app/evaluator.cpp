@@ -30,11 +30,14 @@ void Evaluator::compress_util_IP(Evaluator &eval, Matrix compression, const Matr
     while(row < end + 1)
     {
         mpz_set_si(mat_element(compression, row, 0), 1);
+        std::cout << "pre compression row: "<< row <<", col:" << 0 << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
         for(int col = 0; col < ciphertext->cols; col++)
         {
+
             mpz_powm(tmp, mat_element(ciphertext, row, col), mat_element(inp, 0, col), eval.ctx->p);
             mpz_mul(mat_element(compression, row, 0), mat_element(compression, row, 0), tmp);
             mpz_mod(mat_element(compression, row, 0), mat_element(compression, row, 0), eval.ctx->p);
+            std::cout << "pre compression row: "<< row <<", col:" << col << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
         }
         row = row + numThreads;
     }
@@ -46,7 +49,7 @@ void Evaluator::compress_util_IP(Evaluator &eval, Matrix compression, const Matr
  * @params : ciphertext, 2nd input to function being evaluated
  * @return : compressed ciphertext
  */
-void Evaluator::compress(Matrix compression, const Matrix ciphertext, const Matrix inp, int start, int end) 
+void Evaluator::compress(Matrix compression, const Matrix ciphertext, const Matrix inp, int start, int end)
 {
     if(ciphertext->rows != compression->rows || compression->cols != 1 || inp->cols != ciphertext->cols)
     {
@@ -81,8 +84,11 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
     mpz_t ct0;
     mpz_init(ct0);
 
+
+
     while(row < end + 1)
     {
+        std::cout << "compressed vector for thread " << tid << ": "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
         mpz_set(ct0, mat_element(cmt, row, 0));
         mpz_powm(ct0, ct0, sfk, eval.ctx->p);
         mpz_invert(ct0, ct0, eval.ctx->p );
@@ -90,7 +96,10 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
 
         mpz_mul(mat_element(dest, row, 0), mat_element(compression, row, 0), ct0);
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->p);
+        std::cout << "get DEC " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
+
         get_discrete_log(mat_element(dest, row, 0), eval.ctx);
+        std::cout << "get DL " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
         if(activation == ACTIVATION)
             sigmoid(mat_element(dest, row, 0), mpz_get_d(mat_element(dest, row, 0)));
         row = row + numThreads;
@@ -125,5 +134,3 @@ void Evaluator::evaluate(Matrix dest, const Matrix compression, const Matrix cmt
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
 }
-
-

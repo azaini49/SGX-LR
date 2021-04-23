@@ -45,8 +45,10 @@ void lookup_table_util(mpz_class limit, std::shared_ptr<Context> ctx, int tid, i
         mpz_powm(tmp, ctx->g, i.get_mpz_t(), ctx->p);
         std::unique_lock<std::mutex> locker(gaurd);
         lookup[mpz_class{tmp}] = i;
+        //std::cout << "look up table: "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t()) <<"\n";
         mpz_invert(tmp, tmp, ctx->p);
         lookup[mpz_class{tmp}] = -i;
+        //std::cout << "look up table invert "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t()) <<"\n";
         locker.unlock();
         i = i + numThreads;
     }
@@ -201,11 +203,11 @@ void readFile(std::string filename, std::vector<std::vector<int> > &contents)
   size_t endpos;
   while(getline(src, buffer))
   {
-    endpos= buffer.find(','); 
+    endpos= buffer.find(',');
     int i = 0;
     std::vector<int> tmp;
     while (endpos < buffer.length())
-    {  
+    {
         tmp.push_back(stoi(buffer.substr(strpos,endpos - strpos)));
         strpos = endpos + 1;
         endpos = buffer.find(',', strpos);
@@ -241,7 +243,7 @@ void populate(Matrix inp, std::vector<std::vector<int> > xtest)
     int numCores = std::thread::hardware_concurrency();
     if(numThreads > numCores)
         numThreads = numCores;
-    
+
     std::vector<std::thread> threads(numThreads);
     for(int i = 0; i < numThreads; i++)
     {
@@ -260,10 +262,9 @@ Matrix deserialize_matrix(uint8_t* buff)
     idx = idx + sizeof(int);
 
     memcpy(&c, &buff[idx], sizeof(int));
-    idx = idx + sizeof(int); 
+    idx = idx + sizeof(int);
     // Matrix_Packet packet = (Matrix_Packet)serial;
     Matrix m = mat_init(r, c);
     memcpy(m->data, &buff[idx], r * c * sizeof(mpz_t));
     return m;
 }
-
