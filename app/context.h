@@ -7,7 +7,7 @@
 class Context
 {
     public:
-        mpz_t p;
+        mpz_t N;
         mpz_t g;
         int security_level;
         static std::shared_ptr<Context> Create(int security_level, mpz_t prime = NULL, mpz_t gen = NULL);

@@ -7,7 +7,7 @@
  * @params : security_level(bits), secret key length, field prime, field generator
  * @return : None
  */
-Context::Context(int security_level, mpz_t prime, mpz_t gen)
+Context::Context(int security_level, mpz_t n, mpz_t gen)
     :security_level(security_level)
 {
     if(security_level < 128)
@@ -16,20 +16,31 @@ Context::Context(int security_level, mpz_t prime, mpz_t gen)
     }
 
     // Initialize the FEO object
-    mpz_init(this->p);
+    mpz_init(this->N);
     mpz_init(this->g);
 
+
+
     // Generate prime
-    if(prime == NULL)
+    if(n == NULL)
     {
-        mpz_set_si(this->p, 1);
-        generate_safe_prime(security_level);
+        mpz_t p;
+        mpz_t q;
+        mpz_init_set_si(p, 1);
+        mpz_init_set_si(q, 1);
+        mpz_set_si(this->N, 1);
+        generate_safe_prime(security_level, p);
+        generate_safe_prime(security_level, q);
+
+        mpz_mul(this->N,p,q);
     }
     else
-        mpz_set(this->p, prime);
+        mpz_set(this->N, n);
 
     // Initialize generator
     if(gen == NULL)
+
+        // JESS: TODO
         generator();
     else
         mpz_set(this->g, gen);
@@ -50,7 +61,7 @@ std::shared_ptr<Context> Context::Create(int security_level, mpz_t prime, mpz_t 
  * @params : bit size of the prime
  * @return : safe prime
  */
-void Context::generate_safe_prime(int bits)
+void Context::generate_safe_prime(int bits, mpz_t *prime)
 {
     mpz_t num;
     mpz_init(num);
@@ -61,11 +72,11 @@ void Context::generate_safe_prime(int bits)
     while(true)
     {
         mpz_nextprime(q, num);
-        mpz_addmul_ui(this->p, q, 2);
+        mpz_addmul_ui(prime, q, 2);
 
-        if(mpz_probab_prime_p(this->p, 30) > 0)
+        if(mpz_probab_prime_p(prime, 30) > 0)
             break;
-        mpz_set_si(this->p, 1);
+        mpz_set_si(prime, 1);
         mpz_set(num, q);
     }
     mpz_clear(q);
@@ -103,24 +114,24 @@ void Context::generator()
     while(true)
     {
         int safe = 1;
-        mpz_urandomm(this->g, state, this->p);
+        mpz_urandomm(this->g, state, this->N);
         mpz_add_ui(this->g, this->g, 2);
-        mpz_mod(this->g, this->g, this->p);
-        mpz_powm_ui(tmp, g, 2, this->p);
+        mpz_mod(this->g, this->g, this->N);
+        mpz_powm_ui(tmp, g, 2, this->N);
 
         if(mpz_cmp_si(tmp, 1) == 0)
             safe = 0;
-        mpz_powm(tmp, this->g, q, this->p);
+        mpz_powm(tmp, this->g, q, this->N);
         if(safe == 1 && mpz_cmp_si(tmp, 1) == 0)
             safe = 0;
 
-        mpz_sub_ui(tmp, this->p, 1);
+        mpz_sub_ui(tmp, this->N, 1);
         mpz_fdiv_r(rem, tmp, this->g);
 
         if(safe == 1 && mpz_cmp_ui(rem, 0) == 0)
             safe = 0;
 
-        mpz_invert(ginv, this->g, this->p);
+        mpz_invert(ginv, this->g, this->N);
         mpz_fdiv_r(rem, tmp, ginv);
 
         if(safe == 1 && mpz_cmp_si(rem, 0) == 0)

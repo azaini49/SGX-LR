@@ -28,8 +28,8 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     while(row < plaintext->rows)
     {
 
-        //mpz_urandomm(nonce, state, enc.ctx->p);
-        mpz_set_ui(nonce, 5); // jess code
+        mpz_urandomm(nonce, state, enc.ctx->p);
+        //mpz_set_ui(nonce, 5); // jess code
 
         mpz_add_ui(nonce, nonce, 2);
         mpz_mod(nonce, nonce, enc.ctx->p);
