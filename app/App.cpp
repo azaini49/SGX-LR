@@ -109,35 +109,35 @@ int main(int argc, char const *argv[])
     set_matrix_element(testInp, 3, 1, w); // "label"
     set_matrix_element(testInp, 4, 1, w); // "label"
     mpz_t x;
-    mpz_init_set_si(x, 19);
+    mpz_init_set_si(x, 24);
     set_matrix_element(testInp, 0, 2, x);
     set_matrix_element(testInp, 1, 2, x);
     set_matrix_element(testInp, 2, 2, x);
     set_matrix_element(testInp, 3, 2, x);
     set_matrix_element(testInp, 4, 2, x);
     mpz_t y;
-    mpz_init_set_si(y, 24);
+    mpz_init_set_si(y, 19);
     set_matrix_element(testInp, 0, 3, y);
     set_matrix_element(testInp, 1, 3, y);
     set_matrix_element(testInp, 2, 3, y);
     set_matrix_element(testInp, 3, 3, y);
     set_matrix_element(testInp, 4, 3, y);
     mpz_t z;
-    mpz_init_set_si(z, 24);
+    mpz_init_set_si(z, 8);
     set_matrix_element(testInp, 0, 4, z);
     set_matrix_element(testInp, 1, 4, z);
     set_matrix_element(testInp, 2, 4, z);
     set_matrix_element(testInp, 3, 4, z);
     set_matrix_element(testInp, 4, 4, z);
     mpz_t o;
-    mpz_init_set_si(o, 19);
+    mpz_init_set_si(o, 8);
     set_matrix_element(testInp, 0, 5, o);
     set_matrix_element(testInp, 1, 5, o);
     set_matrix_element(testInp, 2, 5, o);
     set_matrix_element(testInp, 3, 5, o);
     set_matrix_element(testInp, 4, 5, o);
     mpz_t p;
-    mpz_init_set_si(p, 24);
+    mpz_init_set_si(p, 8);
     set_matrix_element(testInp, 0, 6, p);
     set_matrix_element(testInp, 1, 6, p);
     set_matrix_element(testInp, 2, 6, p);
@@ -169,7 +169,7 @@ int main(int argc, char const *argv[])
     mpz_init_set_si(prime, 13);
     mpz_init_set_si(gen, 3);
 
-    auto ctx = Context::Create(SECURITY_BITS); //, prime, gen);
+    auto ctx = Context::Create(SECURITY_BITS, prime, gen);
     printf("context: generator=%ld\n", mpz_get_si(ctx->g));
     printf("context: prime=%ld\n", mpz_get_si(ctx->p));
 

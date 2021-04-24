@@ -98,8 +98,21 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->p);
         std::cout << "get DEC " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
 
+        //jess code
+        mpz_t ans;
+        mpz_init(ans);
+        mpz_set_si(ans, (24*5*2)+(19*5)+(8*5*2));
+
+        mpz_t g_ans;
+        mpz_init(g_ans);
+        mpz_set(g_ans, eval.ctx->g);
+        mpz_powm(g_ans, g_ans, (ans), eval.ctx->p);
+
+        std::cout << "print EQ " << mpz_cmp(mat_element(dest, row, 0), g_ans) << "\n";
+
         get_discrete_log(mat_element(dest, row, 0), eval.ctx);
         std::cout << "get DL " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
+
         if(activation == ACTIVATION)
             sigmoid(mat_element(dest, row, 0), mpz_get_d(mat_element(dest, row, 0)));
         row = row + numThreads;

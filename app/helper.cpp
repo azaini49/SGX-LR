@@ -45,10 +45,10 @@ void lookup_table_util(mpz_class limit, std::shared_ptr<Context> ctx, int tid, i
         mpz_powm(tmp, ctx->g, i.get_mpz_t(), ctx->p);
         std::unique_lock<std::mutex> locker(gaurd);
         lookup[mpz_class{tmp}] = i;
-        //std::cout << "look up table: "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t()) <<"\n";
+        //std::cout << "look up table: "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t())<< " for: " << mpz_get_si(tmp) <<"\n";
         mpz_invert(tmp, tmp, ctx->p);
         lookup[mpz_class{tmp}] = -i;
-        //std::cout << "look up table invert "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t()) <<"\n";
+        //std::cout << "look up table invert: "<< mpz_get_si(lookup[mpz_class{tmp}].get_mpz_t()) << " for: " << mpz_get_si(tmp) <<"\n";
         locker.unlock();
         i = i + numThreads;
     }
