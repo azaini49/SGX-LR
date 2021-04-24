@@ -257,12 +257,12 @@ int main(int argc, char const *argv[])
     Timer timer("Prediction Time");
     Matrix compression = mat_init(xtestEnc->rows, 1);
     eval.compress(compression, xtestEnc, weights); // raise to the y_i (weight_i)
-    req = serialize_request(FINAL_PREDICTION, pk_1.data(), ypredTrans, compression, cmt_xtest, mpz_class{ctx->p}, mpz_class{ctx->g});
-    make_request(req);
-    delete_matrix(compression);
+    //req = serialize_request(FINAL_PREDICTION, pk_1.data(), ypredTrans, compression, cmt_xtest, mpz_class{ctx->p}, mpz_class{ctx->g});
+    //make_request(req);
+    //delete_matrix(compression);
 
     // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
-    eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_1->data(), 0, 0));
+    eval.evaluate(ypredTrans2, compression, cmt_xtest, mat_element(app_sk_1->data(), 0, 0));
     std::cout << "eval\n";
     transpose(ypred, ypredTrans2);
     //mdl.compute_performance_metrics(ypred, ytestPlain);
