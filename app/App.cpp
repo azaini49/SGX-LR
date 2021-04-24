@@ -169,7 +169,7 @@ int main(int argc, char const *argv[])
     mpz_init_set_si(prime, 13);
     mpz_init_set_si(gen, 3);
 
-    auto ctx = Context::Create(SECURITY_BITS, prime, gen);
+    auto ctx = Context::Create(SECURITY_BITS); //, prime, gen);
     printf("context: generator=%ld\n", mpz_get_si(ctx->g));
     printf("context: prime=%ld\n", mpz_get_si(ctx->p));
 
@@ -183,7 +183,6 @@ int main(int argc, char const *argv[])
     // Generate pk and sk to encrypt xtest
     Keygen keygen_1(ctx, xtestPlain->cols);
     Public_Key pk_1 = keygen_1.public_key();
-
 
     std::shared_ptr<Secret_Key> app_sk_1 = std::make_unique<Secret_Key>(keygen_1.secret_key());
     std::cout << "keys\n";
@@ -217,10 +216,6 @@ int main(int argc, char const *argv[])
 
 
     Evaluator eval(ctx);
-    Keygen keygen_3(ctx, 1);
-    Public_Key pk_3 = keygen_3.public_key();
-    Secret_Key app_sk_3 = keygen_3.secret_key();
-    std::cout << "sk3\n";
 
     //Create app lookup table
     compute_lookup_table(ctx, 10);
@@ -262,12 +257,12 @@ int main(int argc, char const *argv[])
     Timer timer("Prediction Time");
     Matrix compression = mat_init(xtestEnc->rows, 1);
     eval.compress(compression, xtestEnc, weights); // raise to the y_i (weight_i)
-    req = serialize_request(FINAL_PREDICTION, pk_3.data(), ypredTrans, compression, cmt_xtest, mpz_class{ctx->p}, mpz_class{ctx->g});
+    req = serialize_request(FINAL_PREDICTION, pk_1.data(), ypredTrans, compression, cmt_xtest, mpz_class{ctx->p}, mpz_class{ctx->g});
     make_request(req);
     delete_matrix(compression);
 
     // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
-    eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_3.data(), 0, 0));
+    eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_1->data(), 0, 0));
     std::cout << "eval\n";
     transpose(ypred, ypredTrans2);
     //mdl.compute_performance_metrics(ypred, ytestPlain);
