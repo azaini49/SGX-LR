@@ -16,7 +16,7 @@ Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key
 // Utility function to encrypt data
 void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
-    // Generate random nonce
+    // Generate random nonce - let nonce equal the value r in scheme
     mpz_t nonce;
     mpz_init(nonce);
 
@@ -27,33 +27,19 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     int row = tid;
     while(row < plaintext->rows)
     {
-
-        mpz_urandomm(nonce, state, enc.ctx->p);
-
+        mpz_urandomm(nonce, state, enc.ctx->N / 4);
         mpz_add_ui(nonce, nonce, 2);
-        mpz_mod(nonce, nonce, enc.ctx->p);
+        mpz_mod(nonce, nonce, enc.ctx->Ns); //take value mod p
+        mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->Ns); // Set b = g^r
 
-        // Set ct0 = g^r
-        mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->p);
-
-
+        // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
         for(int col = 0; col < plaintext->cols; col++)
         {
-            std::cout << "encrypting thread " << tid << " row :"<< row << " col: "<< col << " val: " << mpz_get_si(mat_element(plaintext, row, col)) <<"\n";
-            mpz_powm(tmp, mat_element(enc.pk.data(), 0, col), nonce, enc.ctx->p); // h_i^r in tmp
-            std::cout << "h^r (ct0): " << mpz_get_si(tmp) <<"\n";
-
-            mpz_set(mat_element(ciphertext, row, col), tmp); // ct_i = h_i^r
-
-
-            mpz_powm(tmp, enc.ctx->g, mat_element(plaintext, row, col), enc.ctx->p); // tmp = g^xi
-            std::cout << "g^xi : " << mpz_get_si(tmp) <<"\n";
-
-            mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp); // ct_i = h_i^r * g^xi
-            std::cout << "h_i^r * g^xi : " << mpz_get_si(mat_element(ciphertext, row, col)) <<"\n";
-
-            mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), enc.ctx->p);
-            std::cout << "encrypted " << mpz_get_si(mat_element(ciphertext, row, col)) <<"\n";
+            mpz_powm(tmp, mat_element(enc.pk.data(), 0, col), nonce, enc.ctx->Ns); // power hp^r
+            mpz_set(mat_element(ciphertext, row, col), tmp);
+            mpz_powm(tmp, enc.ctx->N + 1, mat_element(plaintext, row, col), enc.ctx->Ns);// power (N + 1)^xi
+            mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp); // mult (N + 1)^xi * hp^r
+            mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), enc.ctx->Ns);// mod prev val
         }
         row = row + numThreads;
     }

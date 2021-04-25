@@ -291,7 +291,7 @@ int main(int argc, char const *argv[])
 
 
 
-    /* VARAD OLD DATA
+     VARAD OLD DATA
 
     // Retrive training and testing data to process from csv files
     // Get csv contents containing train data
@@ -359,7 +359,7 @@ int main(int argc, char const *argv[])
     Matrix tmp2 = mat_init(xtestRow, 1);
     mat_splice(tmp2, testInp, 0, testInp->rows-1, testInp->cols-1, testInp->cols-1);
     transpose(ytestPlain, tmp2);
-    */
+
 
 
     /*******************************************************************************************************
@@ -367,7 +367,7 @@ int main(int argc, char const *argv[])
      * Setup For Training Begins
      *******************************************************************************************************/
 
-    /*
+
     std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
     start = std::chrono::high_resolution_clock::now();
 

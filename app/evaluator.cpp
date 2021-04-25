@@ -19,30 +19,31 @@ Evaluator::Evaluator(std::shared_ptr<Context> context)
 /**
  * Utility function to perform multithreaded compression
  */
-void Evaluator::compress_util_IP(Evaluator &eval, Matrix compression, const Matrix ciphertext, const Matrix inp, int start, int end, int tid, int numThreads)
-{
-    int row = tid;
+ //basically the same as before
+ void Evaluator::compress_util_IP(Evaluator &eval, Matrix compression, const Matrix ciphertext, const Matrix inp, int start, int end, int tid, int numThreads)
+ {
+     int row = tid;
 
-    // Store intermediate values
-    mpz_t tmp;
-    mpz_init(tmp);
+     // Store intermediate values
+     mpz_t tmp;
+     mpz_init(tmp);
 
-    while(row < end + 1)
-    {
-        mpz_set_si(mat_element(compression, row, 0), 1);
-        std::cout << "pre compression row: "<< row <<", col:" << 0 << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
-        for(int col = 0; col < ciphertext->cols; col++)
-        {
+     while(row < end + 1)
+     {
+         mpz_set_si(mat_element(compression, row, 0), 1);
+         std::cout << "pre compression row: "<< row <<", col:" << 0 << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
+         for(int col = 0; col < ciphertext->cols; col++)
+         {
 
-            mpz_powm(tmp, mat_element(ciphertext, row, col), mat_element(inp, 0, col), eval.ctx->p);
-            mpz_mul(mat_element(compression, row, 0), mat_element(compression, row, 0), tmp);
-            mpz_mod(mat_element(compression, row, 0), mat_element(compression, row, 0), eval.ctx->p);
-            std::cout << "pre compression row: "<< row <<", col:" << col << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
-        }
-        row = row + numThreads;
-    }
-    mpz_clear(tmp);
-}
+             mpz_powm(tmp, mat_element(ciphertext, row, col), mat_element(inp, 0, col), eval.ctx->Ns); //take cti^yi
+             mpz_mul(mat_element(compression, row, 0), mat_element(compression, row, 0), tmp); // mult cti^yi times prev
+             mpz_mod(mat_element(compression, row, 0), mat_element(compression, row, 0), eval.ctx->Ns); // take mod of above
+             std::cout << "pre compression row: "<< row <<", col:" << col << ", val: "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
+         }
+         row = row + numThreads;
+     }
+     mpz_clear(tmp);
+ }
 
 /**
  * Compress the ciphertext given inp
@@ -78,47 +79,43 @@ void Evaluator::compress(Matrix compression, const Matrix ciphertext, const Matr
         threads[i].join();
 }
 
+//TODO! update
 void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk, int activation, int start, int end, int tid, int numThreads)
 {
     int row = tid;
     mpz_t ct0;
     mpz_init(ct0);
 
+    mpz_t one;
+    mpz_init_set_si(one, 1);
 
+    mpz_t N_inv;
+    mpz_init(N_inv);
 
     while(row < end + 1)
     {
         std::cout << "compressed vector for thread " << tid << ": "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
         mpz_set(ct0, mat_element(cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, eval.ctx->p);
-        mpz_invert(ct0, ct0, eval.ctx->p );
+        mpz_pow_ui(ct0, ct0, sfk); // take ct0^sfk
+        mpz_invert(ct0, ct0, eval.ctx->Ns); // find 1/ct0^sfk
         mpz_set_si(mat_element(dest, row, 0), 1);
 
-        mpz_mul(mat_element(dest, row, 0), mat_element(compression, row, 0), ct0);
-        mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->p);
-        std::cout << "get DEC " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
+        mpz_mul(mat_element(dest, row, 0), mat_element(compression, row, 0), ct0); // find compression / ct0^sfk
+        mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
 
-        //jess code
-        mpz_t ans;
-        mpz_init(ans);
-        mpz_set_si(ans, (24*5*2)+(19*5)+(8*5*2));
+        mpz_sub(mat_element(dest, row, 0), one); // subtract 1 from compression / ct0^sfk
+        mpz_invert(N_inv, eval.ctx->N, eval.ctx->Ns); // invert N
+        mpz_mul(mat_element(dest, row, 0), mat_element(dest, row, 0), N_inv); // divide compression / ct0^sfk -1  by N
+        mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
 
-        mpz_t g_ans;
-        mpz_init(g_ans);
-        mpz_set(g_ans, eval.ctx->g);
-        mpz_powm(g_ans, g_ans, (ans), eval.ctx->p);
-
-        std::cout << "print EQ " << mpz_cmp(mat_element(dest, row, 0), g_ans) << "\n";
-
-        get_discrete_log(mat_element(dest, row, 0), eval.ctx);
-        std::cout << "get DL " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
-
+        //get_discrete_log(mat_element(dest, row, 0), eval.ctx);
         if(activation == ACTIVATION)
             sigmoid(mat_element(dest, row, 0), mpz_get_d(mat_element(dest, row, 0)));
         row = row + numThreads;
     }
     mpz_clear(ct0);
 }
+
 
 void Evaluator::evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk, int activation, int start, int end)
 {

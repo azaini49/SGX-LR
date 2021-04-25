@@ -39,6 +39,8 @@ void Keygen::generate_sk_util(Keygen &gen, int tid, gmp_randstate_t state, int n
     int col = tid;
     mpz_t val;
     mpz_init(val);
+
+
     while(col < gen.msk_len)
     {
         // Set position in secret key

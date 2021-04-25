@@ -7,7 +7,7 @@
  * @params : security_level(bits), secret key length, field prime, field generator
  * @return : None
  */
-Context::Context(int security_level, mpz_t n, mpz_t gen)
+Context::Context(int security_level, int Mx, int My)
     :security_level(security_level)
 {
     if(security_level < 128)
@@ -18,32 +18,37 @@ Context::Context(int security_level, mpz_t n, mpz_t gen)
     // Initialize the FEO object
     mpz_init(this->N);
     mpz_init(this->g);
+    mpz_init(this->s);
+    this->Mx = Mx;
+    this->My = My;
+    int Mt = 2*My*Mx + 1;
 
+    mpz_set_si(this->s, 1); //s is int >=1
+    int s_int = mpz_get_si(this->s, s);
 
+    // N
+    mpz_t p;
+    mpz_t q;
+    mpz_init_set_si(p, 1);
+    mpz_init_set_si(q, 1);
+    generate_safe_prime(security_level, p);
+    generate_safe_prime(security_level, q);
 
-    // Generate prime
-    if(n == NULL)
-    {
-        mpz_t p;
-        mpz_t q;
-        mpz_init_set_si(p, 1);
-        mpz_init_set_si(q, 1);
-        mpz_set_si(this->N, 1);
-        generate_safe_prime(security_level, p);
-        generate_safe_prime(security_level, q);
+    mpz_mul(this->N,p,q);
 
-        mpz_mul(this->N,p,q);
+    // Ns
+    mpz_init(this->Ns);
+    mpz_set(this->Ns, this->N);
+    for (int i = 1; i<s_int; i++){
+      mpz_mul(this->Ns, this->Ns, this->N);
     }
-    else
-        mpz_set(this->N, n);
 
-    // Initialize generator
-    if(gen == NULL)
 
-        // JESS: TODO
-        generator();
-    else
-        mpz_set(this->g, gen);
+    generator();
+
+    if (mpz_com_si(this->Ns, Mt) < 0){
+      throw "Message space too Large for N^s.";
+    }
 }
 
 /*
@@ -93,55 +98,45 @@ void Context::generator()
     gmp_randstate_t state;
     gmp_randinit_mt(state);
 
-    // Variable to store temporary result
-    mpz_t tmp;
-    mpz_init(tmp);
+    // U = Z*_{N^{s+1}}
+    mpz_t u;
+    mpz_init(u);
 
-    // Compute q such that p = 2q + 1
-    mpz_t q;
-    mpz_init(q);
-    mpz_sub_ui(q, this->p, 1);
-    mpz_div_ui(q, q, 2);
+    mpz_t Nso;
+    mpz_init(Nso);
+    mpz_set(Nso, this->Ns);
+    mpz_mul(Nso, Nso, this->N);
 
-    // Store intermediate result
-    mpz_t rem;
-    mpz_init(rem);
+    // get u in Z*_{N^{s+1}}
+    int star = 0;
+    while(!star){
+      mpz_urandomm(u, state, Nso);
+      star = 1;
 
-    // Inverse of g modulo p
-    mpz_t ginv;
-    mpz_init(ginv);
+      if (mpz_cmp_si(u,0) <= 0){
+        star = 0;
+      } else {
+          mpz_t gcd;
+          mpz_init_set_si(gcd, 1);
+          mpz_gcd(gcd, u, Nso);
 
-    while(true)
-    {
-        int safe = 1;
-        mpz_urandomm(this->g, state, this->N);
-        mpz_add_ui(this->g, this->g, 2);
-        mpz_mod(this->g, this->g, this->N);
-        mpz_powm_ui(tmp, g, 2, this->N);
-
-        if(mpz_cmp_si(tmp, 1) == 0)
-            safe = 0;
-        mpz_powm(tmp, this->g, q, this->N);
-        if(safe == 1 && mpz_cmp_si(tmp, 1) == 0)
-            safe = 0;
-
-        mpz_sub_ui(tmp, this->N, 1);
-        mpz_fdiv_r(rem, tmp, this->g);
-
-        if(safe == 1 && mpz_cmp_ui(rem, 0) == 0)
-            safe = 0;
-
-        mpz_invert(ginv, this->g, this->N);
-        mpz_fdiv_r(rem, tmp, ginv);
-
-        if(safe == 1 && mpz_cmp_si(rem, 0) == 0)
-            safe = 0;
-        if(safe == 1)
-            break;
+          if (mpz_cmp_si(u,1) != 0){
+            star = 0;
+          }
+      }
     }
+
+    mpz_t Nst;
+    mpz_init(Nst);
+    mpz_set(Nst, this->Ns);
+    mpz_mul_si(Nst, Nst, 2);
+
+    mpz_powm(this->g, u, Nst, this->Ns);
+
+    // TODO? need to check g?
+
     // Clear temporary variables
-    mpz_clear(q);
-    mpz_clear(tmp);
-    mpz_clear(rem);
-    mpz_clear(ginv);
+    mpz_clear(Nst);
+    mpz_clear(Nso);
+    mpz_clear(u);
 }

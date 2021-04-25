@@ -9,6 +9,10 @@ class Context
     public:
         mpz_t N;
         mpz_t g;
+        mpz_t s;
+        mpz_t Ns;
+        int Mx;
+        int My;
         int security_level;
         static std::shared_ptr<Context> Create(int security_level, mpz_t prime = NULL, mpz_t gen = NULL);
         Context() = delete;
