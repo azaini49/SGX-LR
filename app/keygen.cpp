@@ -42,14 +42,13 @@ void Keygen::generate_sk_util(Keygen &gen, int tid, gmp_randstate_t state, int n
     while(col < gen.msk_len)
     {
         // Set position in secret key
-        //mpz_urandomm(val, state, gen.context->p);
-        mpz_set_si(val, 1); // jess code
+        mpz_urandomm(val, state, M*N^s+1 / 4); // -2
 
-        mpz_add_ui(val, val, 2); // issue
-        mpz_mod(val, val, gen.context->p);
+        mpz_add_ui(val, val, 2);
+        //mpz_mod(val, val, gen.context->p);  not modular?
         set_matrix_element(gen.sk.data_, 0, col, val);
 
-        mpz_powm(val, gen.context->g, val, gen.context->p);
+        mpz_powm(val, gen.context->g, val, gen.context->N);
         set_matrix_element(gen.pk.data_, 0, col, val);
         col = col + numThreads;
     }
@@ -81,7 +80,7 @@ void Keygen::generate_pk_util(Keygen &gen, int tid, int numThreads)
     int col = tid;
     while(col < gen.msk_len)
     {
-        mpz_powm(mat_element(gen.pk.data_, 0, col), gen.context->g, mat_element(gen.sk.data_, 0, col), gen.context->p);
+        mpz_powm(mat_element(gen.pk.data_, 0, col), gen.context->g, mat_element(gen.sk.data_, 0, col), gen.context->N);
         col = col + numThreads;
     }
 }
