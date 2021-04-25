@@ -44,7 +44,7 @@ void Secret_Key::set_key(const Matrix data)
 }
 
 
-void Secret_Key::key_der_util(mpx_t hky, const Matrix y, int tid, int numThreads)
+void Secret_Key::key_der_util(mpz_t hky, const Matrix y, int tid, int numThreads)
 {
 
     int col = tid;

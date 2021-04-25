@@ -24,10 +24,15 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     mpz_t tmp;
     mpz_init(tmp);
 
+    mpz_t nd4;
+    mpz_init(nd4);
+    mpz_fdiv_q_ui(nd4, enc.ctx->N, 4);
+
     int row = tid;
     while(row < plaintext->rows)
     {
-        mpz_urandomm(nonce, state, enc.ctx->N / 4);
+        
+        mpz_urandomm(nonce, state, nd4);
         mpz_add_ui(nonce, nonce, 2);
         mpz_mod(nonce, nonce, enc.ctx->Ns); //take value mod p
         mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->Ns); // Set b = g^r
@@ -43,6 +48,7 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
         }
         row = row + numThreads;
     }
+    mpz_clear(nd4);
     mpz_clear(nonce);
     mpz_clear(tmp);
 }

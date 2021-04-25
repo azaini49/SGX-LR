@@ -17,7 +17,9 @@ class Secret_Key
         void set_key(const Matrix data);
         int length();
         void print();
-        void key_der(mpz_t hky, Matrix y);
         const Matrix data() const;
         friend class Keygen;
+        void key_der_util(mpz_t hky, const Matrix y, int tid, int numThreads);
+        void key_der(mpz_t hky, const Matrix y);
+
 };
