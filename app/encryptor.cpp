@@ -16,6 +16,27 @@ Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key
 // Utility function to encrypt data
 void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
+    mpz_t norm;
+    mpz_init(norm);
+    mpz_t tmp2;
+    mpz_init(tmp2);
+    mpz_set(norm, 0);
+    while(row < plaintext->rows)
+    {
+        for(int col = 0; col < plaintext->cols; col++) {
+            mpz_pow_ui(tmp, mat_element(plaintext, row, col), 2);
+            mpz_add(norm, tmp);
+        }
+        mpz_sqrt (norm, norm);      
+        if (mpz_cmp(norm, ctx->Mx) > 0) {
+            throw std::invalid_argument("Plaintext value too large!");
+        }
+
+        row = row + numThreads;
+    }
+    mpz_clear(norm);
+    mpz_clear(tmp2);
+    
     // Generate random nonce - let nonce equal the value r in scheme
     mpz_t nonce;
     mpz_init(nonce);
