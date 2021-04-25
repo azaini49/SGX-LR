@@ -1,6 +1,7 @@
 #include "context.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <iostream>
 
 /*
  * Default private constructor to initialize the context object
@@ -24,17 +25,20 @@ Context::Context(int security_level, int Mx, int My)
     int Mt = 2*My*Mx + 1;
 
     mpz_set_si(this->s, 1); //s is int >=1
-    int s_int = mpz_get_si(this->s, s);
+    int s_int = mpz_get_si(this->s);
 
     // N
     mpz_t p;
     mpz_t q;
     mpz_init_set_si(p, 1);
     mpz_init_set_si(q, 1);
-    generate_safe_prime(security_level, p);
-    generate_safe_prime(security_level, q);
+    generate_safe_prime(security_level, std::ref(p));
+    generate_safe_prime(security_level, std::ref(q));
 
     mpz_mul(this->N,p,q);
+
+    // TEMP
+    //mpz_set(this->N, 33);
 
     // Ns
     mpz_init(this->Ns);
@@ -45,8 +49,9 @@ Context::Context(int security_level, int Mx, int My)
 
 
     generator();
+    //mpz_set(this->g, 5);
 
-    if (mpz_com_si(this->Ns, Mt) < 0){
+    if (mpz_cmp_si(this->Ns, Mt) < 0){
       throw "Message space too Large for N^s.";
     }
 }
@@ -56,9 +61,9 @@ Context::Context(int security_level, int Mx, int My)
  * @params : security_level(bits), secret key length, field prime, field generator
  * @return : Shared pointer to context object
  */
-std::shared_ptr<Context> Context::Create(int security_level, mpz_t prime, mpz_t gen)
+std::shared_ptr<Context> Context::Create(int security_level, int Mx, int My)
 {
-    return std::shared_ptr<Context>(new Context(security_level, prime, gen));
+    return std::shared_ptr<Context>(new Context(security_level, Mx, My));
 }
 
 /*
@@ -66,7 +71,7 @@ std::shared_ptr<Context> Context::Create(int security_level, mpz_t prime, mpz_t 
  * @params : bit size of the prime
  * @return : safe prime
  */
-void Context::generate_safe_prime(int bits, mpz_t *prime)
+void Context::generate_safe_prime(int bits, mpz_t prime)
 {
     mpz_t num;
     mpz_init(num);
@@ -74,6 +79,8 @@ void Context::generate_safe_prime(int bits, mpz_t *prime)
 
     mpz_t q;
     mpz_init(q);
+
+
     while(true)
     {
         mpz_nextprime(q, num);
@@ -117,10 +124,10 @@ void Context::generator()
         star = 0;
       } else {
           mpz_t gcd;
-          mpz_init_set_si(gcd, 1);
+          mpz_init(gcd);
           mpz_gcd(gcd, u, Nso);
 
-          if (mpz_cmp_si(u,1) != 0){
+          if (mpz_cmp_si(gcd,1) != 0){
             star = 0;
           }
       }

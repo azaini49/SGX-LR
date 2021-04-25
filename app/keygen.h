@@ -12,6 +12,7 @@ class Keygen
         Keygen(std::shared_ptr<Context> context, const Secret_Key &secret_key_copy);
         const Public_Key& public_key() const;
         const Secret_Key& secret_key() const;
+        void key_der(mpz_t hky, const Matrix y);
 
     private:
         Public_Key pk;
@@ -23,4 +24,6 @@ class Keygen
         void generate_pk();
         static void generate_sk_util(Keygen &gen, mpz_t limit, int tid, gmp_randstate_t state, int numThreads);
         static void generate_pk_util(Keygen &gen, int tid, int numThreads);
+        static void key_der_util(Keygen &sk, mpz_t hky, const Matrix y, int tid, int numThreads);
+
 };

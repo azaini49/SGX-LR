@@ -31,10 +31,11 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     int row = tid;
     while(row < plaintext->rows)
     {
-        
-        mpz_urandomm(nonce, state, nd4);
-        mpz_add_ui(nonce, nonce, 2);
-        mpz_mod(nonce, nonce, enc.ctx->Ns); //take value mod p
+
+        //mpz_urandomm(nonce, state, nd4); TEMP
+        //mpz_add_ui(nonce, nonce, 2);
+        mpz_set_si(nonce, 3); // TEMP
+
         mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->Ns); // Set b = g^r
 
         // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)

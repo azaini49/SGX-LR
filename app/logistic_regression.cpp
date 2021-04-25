@@ -35,7 +35,7 @@ void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Ev
     Matrix dummy = NULL;
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
-    Request req = serialize_request(FINAL_PREDICTION, pk.data(), ypred, compression, cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
+    Request req = serialize_request(FINAL_PREDICTION, pk.data(), ypred, compression, cmt, mpz_class{ctx->Ns}, mpz_class{ctx->g});
     make_request(req);
     delete_matrix(compression);
 }
@@ -135,29 +135,29 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         eval.compress(compression, xtrain_batch, this->weights);
 
         // Assign values to request object
-        train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->p}, mpz_class{ctx->g});
+        train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->Ns}, mpz_class{ctx->g});
         train_req->start_idx = start_idx;
         train_req->batch_size = batchSize;
         make_request(train_req);
 
         transpose(ypred_trans, ypred);
-       
+
 	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-        
+
         // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
         eval.compress(update_compress, xbatch, training_error);
 
         // Assign values to request and wrapper for updating weights
-        Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->p}, mpz_class{ctx->g});
+        Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->Ns}, mpz_class{ctx->g});
         update_weights_req->start_idx = start_idx;
         update_weights_req->batch_size = batchSize;
         update_weights_req->alpha = alpha;
         update_weights_req->learning_rate = learning_rate;
         make_request(update_weights_req);
-    
+
         start_idx = (start_idx + batchSize) % xtrain_enc->rows;
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;

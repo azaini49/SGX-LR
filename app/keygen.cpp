@@ -119,6 +119,44 @@ void Keygen::generate_pk()
         threads[i].join();
 }
 
+void Keygen::key_der_util(Keygen &kg, mpz_t hky, const Matrix y, int tid, int numThreads)
+{
+
+    int col = tid;
+
+    mpz_t tmp;
+    mpz_init(tmp);
+
+    mpz_set_si(hky,0);
+
+    while(col < kg.msk_len)
+    {
+      mpz_mul(tmp, mat_element(y, 0, col), mat_element(kg.sk.data_, 0, col));
+      mpz_add(hky, hky, tmp);
+
+      col = col + numThreads;
+    }
+    mpz_clear(tmp);
+
+}
+
+
+void Keygen::key_der(mpz_t hky, const Matrix y){
+
+  // Define threadpool
+  int numThreads = std::thread::hardware_concurrency();
+  std::thread threads[numThreads];
+  for(int i = 0; i < numThreads; i++)
+  {
+      threads[i] = std::thread(key_der_util, std::ref(*this), std::ref(hky), std::ref(y), i, numThreads);
+  }
+  for(int i = 0; i < numThreads; i++)
+      threads[i].join();
+
+}
+
+
+
 // Return the secret key
 const Secret_Key& Keygen::secret_key() const
 {

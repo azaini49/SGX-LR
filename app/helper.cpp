@@ -31,7 +31,7 @@ int sigmoid(mpz_t res, double x)
     mpz_set_si(res, tmp);
     return COMPLETED;
 }
-
+/*
 // Utility function to generate lookup table
 void lookup_table_util(mpz_class limit, std::shared_ptr<Context> ctx, int tid, int numThreads)
 {
@@ -100,6 +100,7 @@ void get_discrete_log(mpz_t x, std::shared_ptr<Context> ctx)
     else
         mpz_set(x, it->second.get_mpz_t());
 }
+*/
 
 void make_request(Request req)
 {

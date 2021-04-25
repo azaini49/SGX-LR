@@ -14,14 +14,14 @@ class Context
         int Mx;
         int My;
         int security_level;
-        static std::shared_ptr<Context> Create(int security_level, mpz_t prime = NULL, mpz_t gen = NULL);
+        static std::shared_ptr<Context> Create(int security_level, int Mx, int My);
         Context() = delete;
     private:
-        Context(int security_level, mpz_t prime = NULL, mpz_t gen = NULL);
+        Context(int security_level, int Mx, int My);
         Context(const Context &copy) = delete;
         Context(Context &&source) = delete;
         Context &operator =(const Context &assign) = delete;
         Context &operator =(Context &&assign) = delete;
-        void generate_safe_prime(int bits);
+        void generate_safe_prime(int bits, mpz_t prime);
         void generator();
 };

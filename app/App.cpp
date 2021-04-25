@@ -169,15 +169,16 @@ int main(int argc, char const *argv[])
     mpz_init_set_si(prime, 13);
     mpz_init_set_si(gen, 3);
 
-    auto ctx = Context::Create(SECURITY_BITS, prime, gen);
+    auto ctx = Context::Create(SECURITY_BITS, 500, 500);
     printf("context: generator=%ld\n", mpz_get_si(ctx->g));
-    printf("context: prime=%ld\n", mpz_get_si(ctx->p));
+    printf("context: mod=%ld\n", mpz_get_si(ctx->Ns));
 
     // Make a request to setup the lookup table for discrete log/
     Matrix dummy = NULL;
-    Request req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
+    /*Request  req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->Ns}, mpz_class{ctx->g});
     req->limit = 10;
     make_request(req);
+    */
 
 
     // Generate pk and sk to encrypt xtest
@@ -206,7 +207,7 @@ int main(int argc, char const *argv[])
     }
 
     // Generate request for the enclave to setup sk_1
-    req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->p}, mpz_class{ctx->g});
+    Request req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->Ns}, mpz_class{ctx->g});
     req->key_id = 1;
     make_request(req);
 
@@ -218,8 +219,8 @@ int main(int argc, char const *argv[])
     Evaluator eval(ctx);
 
     //Create app lookup table
-    compute_lookup_table(ctx, 10);
-    std::cout << "lookup table\n";
+    //compute_lookup_table(ctx, 10);
+    //std::cout << "lookup table\n";
 
 
     // weights
@@ -261,8 +262,14 @@ int main(int argc, char const *argv[])
     //make_request(req);
     //delete_matrix(compression);
 
+
+    mpz_t sky;
+    mpz_init(sky);
+
+    keygen_1.key_der(sky, weights);
+
     // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
-    eval.evaluate(ypredTrans2, compression, cmt_xtest, mat_element(app_sk_1->data(), 0, 0));
+    eval.evaluate(ypredTrans2, compression, cmt_xtest, sky);
     std::cout << "eval\n";
     transpose(ypred, ypredTrans2);
     //mdl.compute_performance_metrics(ypred, ytestPlain);
@@ -291,7 +298,7 @@ int main(int argc, char const *argv[])
 
 
 
-     VARAD OLD DATA
+    /* VARAD OLD DATA
 
     // Retrive training and testing data to process from csv files
     // Get csv contents containing train data
@@ -359,7 +366,7 @@ int main(int argc, char const *argv[])
     Matrix tmp2 = mat_init(xtestRow, 1);
     mat_splice(tmp2, testInp, 0, testInp->rows-1, testInp->cols-1, testInp->cols-1);
     transpose(ytestPlain, tmp2);
-
+    */
 
 
     /*******************************************************************************************************
@@ -367,7 +374,7 @@ int main(int argc, char const *argv[])
      * Setup For Training Begins
      *******************************************************************************************************/
 
-
+    /*
     std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
     start = std::chrono::high_resolution_clock::now();
 
