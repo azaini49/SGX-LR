@@ -12,6 +12,11 @@ PubKeyEncr::PubKeyEncr(int security_level)
     generate_key(security_level);
 }
 
+std::shared_ptr<PubKeyEncr> PubKeyEncr::Create(int security_level)
+{
+    return std::shared_ptr<PubKeyEncr>(new PubKeyEncr(security_level));
+}
+
 
 // Generate public and private keys (USE STRONGER RANDOM NUMBER GENERATOR!!!)
 void PubKeyEncr::generate_key_util(PubKeyEncr &pke, int security_level, int tid, int numThreads)
@@ -136,8 +141,8 @@ void PubKeyEncr::encrypt(mpz_t ciphertext, mpz_t plaintext)
 }
 
 
-// Utility function to encrypt data
-void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext, gmp_randstate_t state, int tid, int numThreads)
+// Utility function to decrypt data
+void PubKeyEncr::decrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext, int tid, int numThreads)
 {
     //int row = tid;
 

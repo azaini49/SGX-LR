@@ -10,6 +10,7 @@ class PubKeyEncr
         mpz_t N;
         mpz_t g;
         PubKeyEncr(int security_level);
+        static std::shared_ptr<PubKeyEncr> Create(int security_level);
         void generate_key(int security_level);
         void encrypt(mpz_t ciphertext, mpz_t m);
         void decrypt(mpz_t dest, mpz_t ciphertext);
