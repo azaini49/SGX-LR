@@ -6,8 +6,8 @@
  * Constructer for PubKeyEncr
  * @params : length of secret key
  */
-PubKeyEncr::PubKeyEncr(int sk_lenm,  int security_level)
-     :sk_len(sk_len), security_level(security_level)
+PubKeyEncr::PubKeyEncr(int security_level)
+     :security_level(security_level)
 {
     generate_key(security_level);
 }
@@ -90,7 +90,7 @@ void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext
         //{
             mpz_powm(ciphertext, this->g, plaintext, N2);
             mpz_powm(tmp, nonce, this->N, N2);
-            mpz_mult(ciphertext, ciphertext, tmp);
+            mpz_mul(ciphertext, ciphertext, tmp);
 
         //}
         //row = row + numThreads;
@@ -137,7 +137,7 @@ void PubKeyEncr::encrypt(mpz_t ciphertext, mpz_t plaintext)
 
 
 // Utility function to encrypt data
-void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext,  int tid, int numThreads)
+void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext, gmp_randstate_t state, int tid, int numThreads)
 {
     //int row = tid;
 
