@@ -45,6 +45,11 @@ void Keygen::generate_sk_util(Keygen &gen, mpz_t limit, int tid, gmp_randstate_t
         // Set position in secret key
         mpz_urandomm(val, state, limit); // -2 ?
 
+        // TEMP
+        //mpz_set_si(val, 13);
+
+        std::cout << "sk: " << mpz_get_si(val);
+
         //mpz_add_ui(val, val, 2);
         //mpz_mod(val, val, gen.context->p);
         set_matrix_element(gen.sk.data_, 0, col, val);
@@ -68,12 +73,7 @@ void Keygen::generate_sk()
     mpz_t limit;
     mpz_init_set_si(limit, M);
 
-    mpz_t Nso;
-    mpz_init(Nso);
-    mpz_set(Nso, this->context->Ns);
-    mpz_mul(Nso, Nso, this->context->N);
-
-    mpz_mul(limit, limit, Nso);
+    mpz_mul(limit, limit, this->context->Ns);
     mpz_fdiv_q_ui(limit, limit, 4);
 
     // Define threadpool
@@ -87,7 +87,6 @@ void Keygen::generate_sk()
         threads[i].join();
     this->gen_secret_key = false;
 
-    mpz_clear(Nso);
     mpz_clear(limit);
 }
 
@@ -98,6 +97,8 @@ void Keygen::generate_pk_util(Keygen &gen, int tid, int numThreads)
     while(col < gen.msk_len)
     {
         mpz_powm(mat_element(gen.pk.data_, 0, col), gen.context->g, mat_element(gen.sk.data_, 0, col), gen.context->Ns);
+
+        std::cout << "pk: " << mpz_get_si(mat_element(gen.pk.data_, 0, col));
         col = col + numThreads;
     }
 }
@@ -125,9 +126,7 @@ void Keygen::key_der_util(Keygen &kg, mpz_t hky, const Matrix y, int tid, int nu
     int col = tid;
 
     mpz_t tmp;
-    mpz_init(tmp);
-
-    mpz_set_si(hky,0);
+    mpz_init_set_si(tmp,0);
 
     while(col < kg.msk_len)
     {
@@ -136,10 +135,8 @@ void Keygen::key_der_util(Keygen &kg, mpz_t hky, const Matrix y, int tid, int nu
 
       col = col + numThreads;
     }
-    mpz_clear(tmp);
 
 }
-
 
 void Keygen::key_der(mpz_t hky, const Matrix y){
 

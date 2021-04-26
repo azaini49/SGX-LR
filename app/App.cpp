@@ -95,49 +95,49 @@ int main(int argc, char const *argv[])
     // Populate the matices
     //populate(testInp, xtest);
     mpz_t v;
-    mpz_init_set_si(v, 19);
+    mpz_init_set_si(v, 6);
     set_matrix_element(testInp, 0, 0, v); // "label"
     set_matrix_element(testInp, 1, 0, v); // "label"
     set_matrix_element(testInp, 2, 0, v); // "label"
     set_matrix_element(testInp, 3, 0, v); // "label"
     set_matrix_element(testInp, 4, 0, v); // "label"
     mpz_t w;
-    mpz_init_set_si(w, 24);
+    mpz_init_set_si(w, 6);
     set_matrix_element(testInp, 0, 1, w); // "label"
     set_matrix_element(testInp, 1, 1, w); // "label"
     set_matrix_element(testInp, 2, 1, w); // "label"
     set_matrix_element(testInp, 3, 1, w); // "label"
     set_matrix_element(testInp, 4, 1, w); // "label"
     mpz_t x;
-    mpz_init_set_si(x, 24);
+    mpz_init_set_si(x, 6);
     set_matrix_element(testInp, 0, 2, x);
     set_matrix_element(testInp, 1, 2, x);
     set_matrix_element(testInp, 2, 2, x);
     set_matrix_element(testInp, 3, 2, x);
     set_matrix_element(testInp, 4, 2, x);
     mpz_t y;
-    mpz_init_set_si(y, 19);
+    mpz_init_set_si(y, 6);
     set_matrix_element(testInp, 0, 3, y);
     set_matrix_element(testInp, 1, 3, y);
     set_matrix_element(testInp, 2, 3, y);
     set_matrix_element(testInp, 3, 3, y);
     set_matrix_element(testInp, 4, 3, y);
     mpz_t z;
-    mpz_init_set_si(z, 8);
+    mpz_init_set_si(z, 6);
     set_matrix_element(testInp, 0, 4, z);
     set_matrix_element(testInp, 1, 4, z);
     set_matrix_element(testInp, 2, 4, z);
     set_matrix_element(testInp, 3, 4, z);
     set_matrix_element(testInp, 4, 4, z);
     mpz_t o;
-    mpz_init_set_si(o, 8);
+    mpz_init_set_si(o, 6);
     set_matrix_element(testInp, 0, 5, o);
     set_matrix_element(testInp, 1, 5, o);
     set_matrix_element(testInp, 2, 5, o);
     set_matrix_element(testInp, 3, 5, o);
     set_matrix_element(testInp, 4, 5, o);
     mpz_t p;
-    mpz_init_set_si(p, 8);
+    mpz_init_set_si(p, 6);
     set_matrix_element(testInp, 0, 6, p);
     set_matrix_element(testInp, 1, 6, p);
     set_matrix_element(testInp, 2, 6, p);
@@ -226,25 +226,25 @@ int main(int argc, char const *argv[])
     // weights
     Matrix weights = mat_init(1, xtestEnc->cols); //xtestEnc->cols);
     mpz_t a;
-    mpz_init_set_si(a, 5);
+    mpz_init_set_si(a, 7);
     set_matrix_element(weights, 0, 0, a);
     mpz_t b;
-    mpz_init_set_si(b, 5);
+    mpz_init_set_si(b, 7);
     set_matrix_element(weights, 0, 1, b);
     mpz_t c;
-    mpz_init_set_si(c, 5);
+    mpz_init_set_si(c, 7);
     set_matrix_element(weights, 0, 2, c);
     mpz_t d;
-    mpz_init_set_si(d, 5);
+    mpz_init_set_si(d, 7);
     set_matrix_element(weights, 0, 3, d);
     mpz_t e;
-    mpz_init_set_si(e, 5);
+    mpz_init_set_si(e, 7);
     set_matrix_element(weights, 0, 4, e);
     mpz_t f;
-    mpz_init_set_si(f, 5);
+    mpz_init_set_si(f, 7);
     set_matrix_element(weights, 0, 5, e);
     mpz_t g;
-    mpz_init_set_si(g, 5);
+    mpz_init_set_si(g, 7);
     set_matrix_element(weights, 0, 7, e);
 
     std::cout << "weights?\n";
@@ -267,6 +267,7 @@ int main(int argc, char const *argv[])
     mpz_init(sky);
 
     keygen_1.key_der(sky, weights);
+    std::cout << "SKY MAIN"<< mpz_get_si(sky) <<"\n";
 
     // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
     eval.evaluate(ypredTrans2, compression, cmt_xtest, sky);

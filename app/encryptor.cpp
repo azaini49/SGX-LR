@@ -16,27 +16,16 @@ Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key
 // Utility function to encrypt data
 void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
+    int row = tid;
+
     mpz_t norm;
     mpz_init(norm);
+
     mpz_t tmp2;
     mpz_init(tmp2);
-    mpz_set(norm, 0);
-    while(row < plaintext->rows)
-    {
-        for(int col = 0; col < plaintext->cols; col++) {
-            mpz_pow_ui(tmp2, mat_element(plaintext, row, col), 2);
-            mpz_add(norm, norm, tmp2);
-        }
-        mpz_sqrt (norm, norm);      
-        if (mpz_cmp(norm, enc.ctx->Mx) > 0) {
-            throw std::invalid_argument("Plaintext value too large!");
-        }
 
-        row = row + numThreads;
-    }
-    mpz_clear(norm);
-    mpz_clear(tmp2);
-    
+    mpz_set_si(norm, 0);
+
     // Generate random nonce - let nonce equal the value r in scheme
     mpz_t nonce;
     mpz_init(nonce);
@@ -49,13 +38,24 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     mpz_init(nd4);
     mpz_fdiv_q_ui(nd4, enc.ctx->N, 4);
 
-    int row = tid;
+
     while(row < plaintext->rows)
     {
+        // SIZE CHECK
+        for(int col = 0; col < plaintext->cols; col++) {
+            mpz_mul(tmp2, mat_element(plaintext, row, col), mat_element(plaintext, row, col));
+            mpz_add(norm, norm, tmp2);
+        }
+        mpz_sqrt(norm, norm);
+        if (mpz_cmp_si(norm, enc.ctx->Mx) > 0) {
+            throw std::invalid_argument("Plaintext value too large!");
+        }
 
-        //mpz_urandomm(nonce, state, nd4); TEMP
-        //mpz_add_ui(nonce, nonce, 2);
-        mpz_set_si(nonce, 3); // TEMP
+        // ENCRYPT
+        mpz_urandomm(nonce, state, nd4);
+        mpz_add_ui(nonce, nonce, 2);
+
+      //  mpz_set_si(nonce, 4); // TEMP
 
         mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->Ns); // Set b = g^r
 
@@ -64,7 +64,7 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
         {
             mpz_powm(tmp, mat_element(enc.pk.data(), 0, col), nonce, enc.ctx->Ns); // power hp^r
             mpz_set(mat_element(ciphertext, row, col), tmp);
-            mpz_mul(tmp, enc.ctx->N, mat_element(plaintext, row, col), enc.ctx->Ns);// power (N + 1)^xi
+            mpz_mul(tmp, enc.ctx->N, mat_element(plaintext, row, col));// power (N + 1)^xi
             mpz_add_ui(tmp, tmp, 1);
             mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp); // mult (N + 1)^xi * hp^r
             mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), enc.ctx->Ns);// mod prev val
@@ -74,6 +74,9 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     mpz_clear(nd4);
     mpz_clear(nonce);
     mpz_clear(tmp);
+    mpz_clear(norm);
+    mpz_clear(tmp2);
+
 }
 
 /**

@@ -24,32 +24,30 @@ Context::Context(int security_level, int Mx, int My)
     this->My = My;
     int Mt = 2*My*Mx + 1;
 
-    mpz_set_si(this->s, 1); //s is int >=1
+    mpz_set_si(this->s, 2); //s is int >=1
     int s_int = mpz_get_si(this->s);
 
     // N
     mpz_t p;
     mpz_t q;
-    mpz_init_set_si(p, 1);
-    mpz_init_set_si(q, 1);
+    mpz_init_set_si(p, 1);//167);
+    mpz_init_set_si(q, 1);//179);
     generate_safe_prime(security_level, std::ref(p));
     generate_safe_prime(security_level, std::ref(q));
 
-    mpz_mul(this->N,p,q);
 
-    // TEMP
-    //mpz_set(this->N, 33);
+    mpz_mul(this->N,p,q);
 
     // Ns
     mpz_init(this->Ns);
-    mpz_set(this->Ns, this->N);
     for (int i = 1; i<s_int; i++){
-      mpz_mul(this->Ns, this->Ns, this->N);
+      mpz_mul(this->Ns, this->N, this->N);
     }
 
 
     generator();
-    //mpz_set(this->g, 5);
+
+    std::cout << "G= " << mpz_get_si(this->g) << "\n";
 
     if (mpz_cmp_si(this->Ns, Mt) < 0){
       throw "Message space too Large for N^s.";
@@ -109,15 +107,10 @@ void Context::generator()
     mpz_t u;
     mpz_init(u);
 
-    mpz_t Nso;
-    mpz_init(Nso);
-    mpz_set(Nso, this->Ns);
-    mpz_mul(Nso, Nso, this->N);
-
     // get u in Z*_{N^{s+1}}
     int star = 0;
     while(!star){
-      mpz_urandomm(u, state, Nso);
+      mpz_urandomm(u, state, this->Ns);
       star = 1;
 
       if (mpz_cmp_si(u,0) <= 0){
@@ -125,7 +118,7 @@ void Context::generator()
       } else {
           mpz_t gcd;
           mpz_init(gcd);
-          mpz_gcd(gcd, u, Nso);
+          mpz_gcd(gcd, u, this->Ns);
 
           if (mpz_cmp_si(gcd,1) != 0){
             star = 0;
@@ -133,17 +126,12 @@ void Context::generator()
       }
     }
 
-    mpz_t Nst;
-    mpz_init(Nst);
-    mpz_set(Nst, this->Ns);
-    mpz_mul_si(Nst, Nst, 2);
 
-    mpz_powm(this->g, u, Nst, this->Ns);
+    // TEMP
+    //mpz_set_si(u, 17);
 
-    // TODO? need to check g?
+    mpz_powm(this->g, u, this->N, this->Ns);
 
     // Clear temporary variables
-    mpz_clear(Nst);
-    mpz_clear(Nso);
     mpz_clear(u);
 }

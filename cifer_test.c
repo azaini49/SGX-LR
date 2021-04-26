@@ -43,6 +43,21 @@ void *cfe_malloc(size_t size) {
     return ptr;
 }
 
+void cfe_vec_dot(mpz_t res, cfe_vec *v1, cfe_vec *v2) {
+
+    mpz_t prod;
+    mpz_init(prod);
+
+    // set it to 0, in case it already holds some value != 0
+    mpz_set_si(res, 0);
+
+    for (size_t i = 0; i < v1->size; i++) {
+        mpz_mul(prod, v1->vec[i], v2->vec[i]);
+        mpz_add(res, res, prod);
+    }
+
+    mpz_clear(prod);
+}
 
 // Finds a prime number of specified bit length.
 // If the safe parameter is true, the prime will be a safe prime, e.g a prime p
@@ -70,8 +85,19 @@ void cfe_get_prime(mpz_t res, size_t bits, bool safe) {
     mpz_t p, p_safe, big_mod;
     mpz_inits(p, p_safe, big_mod, NULL);
 
+
+    gmp_randstate_t state;
+    gmp_randinit_mt(state);
+
     while (true) {
-        randombytes_buf(bytes, n_bytes);
+        //randombytes_buf(bytes, n_bytes);
+            
+        int size = n_bytes;
+
+        mpz_t pre;
+	mpz_init(pre);
+	mpz_urandomb(pre, state, size);	
+	mpz_export(bytes, n_bytes, 1,1,0,0,pre);
 
         bytes[0] &= (u_int8_t) ((1 << b) - 1);
 
@@ -161,12 +187,19 @@ void cfe_uniform_sample(mpz_t res, mpz_t upper) {
     size_t n_bytes = ((n_bits - 1) / 8) + 1;
     u_int8_t *rand_bytes = (u_int8_t *) cfe_malloc(n_bytes * sizeof(u_int8_t));
 
+    gmp_randstate_t state;
+        gmp_randinit_mt(state); 
+
     while (1) {
-        randombytes_buf(rand_bytes, n_bytes); // get random bytes
+        //randombytes_buf(rand_bytes, n_bytes); // get random bytes
 
         // make a big integer number from random bytes
         // result is always positive
-        mpz_import(res, n_bytes, 1, 1, 0, 0, rand_bytes);
+        //mpz_import(res, n_bytes, 1, 1, 0, 0, rand_bytes);
+	    
+	int size = n_bytes*(2^8);
+    	mpz_urandomm(res, state, size);
+
 
         // random number too big, divide it
         if (mpz_sizeinbase(res, 2)  > n_bits) {
@@ -182,6 +215,7 @@ void cfe_uniform_sample(mpz_t res, mpz_t upper) {
 }
 
 
+
 // Checks if all coordinates are < bound.
 bool cfe_vec_check_bound(cfe_vec *v, mpz_t bound) {
     for (size_t i = 0; i < v->size; i++) {
@@ -195,13 +229,11 @@ bool cfe_vec_check_bound(cfe_vec *v, mpz_t bound) {
 
 // Sets res to the i-th element of v.
 void cfe_vec_get(mpz_t res, cfe_vec *v, size_t i) {
-    assert (i < v->size);
     mpz_set(res, v->vec[i]);
 }
 
 // Sets the i-th element of v to el.
 void cfe_vec_set(cfe_vec *v, mpz_t el, size_t i) {
-    assert (i < v->size);
     mpz_set(v->vec[i], el);
 }
 
@@ -325,13 +357,15 @@ void cfe_paillier_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_paillier 
 
     mpf_t one;
     mpf_init_set_ui(one, 1);
-    cfe_normal_double_constant sampler;
-    cfe_normal_double_constant_init(&sampler, s->k_sigma);
+    //cfe_normal_double_constant sampler;
+    //cfe_normal_double_constant_init(&sampler, s->k_sigma);
 
     mpz_t x, y;
     mpz_inits(x, y, NULL);
 
-    cfe_normal_double_constant_sample_vec(msk, &sampler);
+    //cfe_normal_double_constant_sample_vec(msk, &sampler);
+    //TODO
+
 
     for (size_t i = 0; i < s->l; i++) {
         cfe_vec_get(y, msk, i);
@@ -341,7 +375,6 @@ void cfe_paillier_generate_master_keys(cfe_vec *msk, cfe_vec *mpk, cfe_paillier 
 
     mpf_clear(one);
     mpz_clears(x, y, NULL);
-    cfe_normal_double_constant_free(&sampler);
     return;
 }
 
@@ -417,8 +450,75 @@ void cfe_paillier_decrypt(mpz_t res, cfe_paillier *s, cfe_vec *ciphertext, mpz_t
     return;
 }
 
-int main(void){
 
+void cfe_uniform_sample_vec(cfe_vec *res, mpz_t max) {
+    for (size_t i = 0; i < res->size; i++) {
+        cfe_uniform_sample(res->vec[i], max);
+    }
+}
+
+void cfe_uniform_sample_range(mpz_t res, mpz_t min, mpz_t max) {
+    mpz_t max_sub_min;
+    mpz_init(max_sub_min);
+    mpz_sub(max_sub_min, max, min);
+
+    cfe_uniform_sample(res, max_sub_min); // sets res to be from [0, max-min)
+    mpz_add(res, res, min);                     // sets res to be from [min, max)
+
+    mpz_clear(max_sub_min);
+}
+
+void cfe_uniform_sample_range_vec(cfe_vec *res, mpz_t lower, mpz_t upper) {
+    for (size_t i = 0; i < res->size; i++) {
+        cfe_uniform_sample_range(res->vec[i], lower, upper);
+    }
+}
+
+
+int main(void){
+    size_t l = 50;
+    size_t lambda = 128;
+    size_t bit_len = 512;
+    mpz_t bound_x, bound_y, fe_key, xy_check, xy, bound_x_neg, bound_y_neg;
+    mpz_init(bound_x);
+    mpz_init(bound_y);
+    mpz_init(fe_key);
+    mpz_init(xy_check);
+    mpz_init(xy);
+    mpz_init(bound_x_neg);
+    mpz_init(bound_y_neg);
+    mpz_set_ui(bound_x, 2);
+    mpz_pow_ui(bound_x, bound_x, 10);
+    mpz_set(bound_y, bound_x);
+    mpz_neg(bound_x_neg, bound_x);
+    mpz_add_ui(bound_x_neg, bound_x_neg, 1);
+    mpz_neg(bound_y_neg, bound_y);
+    mpz_add_ui(bound_y_neg, bound_y_neg, 1);
+
+    cfe_paillier s, encryptor;
+    cfe_paillier_init(&s, l, lambda, bit_len, bound_x, bound_y);
+
+    cfe_vec msk, mpk, ciphertext, x, y;
+    cfe_vec_init(&x,l);
+    cfe_vec_init(&y,l);
+    
+    cfe_uniform_sample_range_vec(&x, bound_x_neg, bound_x);
+    cfe_uniform_sample_range_vec(&y, bound_y_neg, bound_y);
+    
+
+
+    cfe_vec_dot(xy_check, &x, &y);
+
+    cfe_paillier_master_keys_init(&msk, &mpk, &s);
+    cfe_paillier_generate_master_keys(&msk, &mpk, &s);
+
+    cfe_paillier_derive_fe_key(fe_key, &s, &msk, &y);
+
+    cfe_paillier_copy(&encryptor, &s);
+    cfe_paillier_ciphertext_init(&ciphertext, &encryptor);
+    cfe_paillier_encrypt(&ciphertext, &encryptor, &x, &mpk);
+
+    cfe_paillier_decrypt(xy, &s, &ciphertext, fe_key, &y);
 
 
     return 0;

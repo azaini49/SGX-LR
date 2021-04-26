@@ -92,33 +92,30 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
     while(row < end + 1)
     {
         std::cout << "compressed vector for thread " << tid << ": "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
+        std::cout << "sky " << mpz_get_si(sfk) << "\n";
+
         mpz_set(ct0, mat_element(cmt, row, 0));
         mpz_powm(ct0, ct0, sfk, eval.ctx->Ns); // take ct0^sfk
         mpz_invert(ct0, ct0, eval.ctx->Ns); // find 1/ct0^sfk
         mpz_set_si(mat_element(dest, row, 0), 1);
 
+        std::cout << "b " << mpz_get_si(ct0) << "\n";
+
         mpz_mul(mat_element(dest, row, 0), mat_element(compression, row, 0), ct0); // find compression / ct0^sfk
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
 
-        //temp
-        mpz_t check;
-        mpz_init(check);
-        int ans = (2*24*5 + 19*5 + 2*8*5);
-        mpz_powm_ui(check, eval.ctx->g, ans, eval.ctx->Ns);
+        std::cout << "div cto " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
 
-        int cmp = mpz_cmp(mat_element(dest, row, 0), check);
-
-        std::cout << "g^in prod " << cmp << " is " << mpz_get_si(mat_element(dest, row, 0)) << "should be "<< mpz_get_si(check) <<"\n";
         // get DL
-        /*mpz_sub(mat_element(dest, row, 0), mat_element(dest, row, 0), one); // subtract 1 from compression / ct0^sfk
+        mpz_sub_ui(mat_element(dest, row, 0), mat_element(dest, row, 0), 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
-        */
-        mpz_sub_ui(check, check, 1); // subtract 1 from compression / ct0^sfk
+
+        /*mpz_sub_ui(check, check, 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(check, check, eval.ctx->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(check, check, eval.ctx->Ns); // take mod of prev value
 
-        std::cout << "check " << mpz_get_si(check) << "\n";
+        std::cout << "check " << mpz_get_si(check) << "\n";*/
 
         //get_discrete_log(mat_element(dest, row, 0), eval.ctx);
         if(activation == ACTIVATION)
