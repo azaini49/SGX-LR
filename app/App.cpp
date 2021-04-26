@@ -258,8 +258,8 @@ int main(int argc, char const *argv[])
     eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_3.data(), 0, 0));
     std::cout << "eval\n";
     transpose(ypred, ypredTrans2);
-    //mdl.compute_performance_metrics(ypred, ytestPlain);
-    //std::cout << "Accuracy : " << mdl.accuracy << std::endl;
+    mdl.compute_performance_metrics(ypred, ytestPlain);
+    std::cout << "Accuracy : " << mdl.accuracy << std::endl;
     std::cout << "output?\n";
     for (int i = 0; i < ypred->cols; i++){
       printf("out: %ld\n", mpz_get_si(mat_element(ypred, 0, i)));
