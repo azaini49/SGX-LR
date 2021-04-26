@@ -111,13 +111,11 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
         std::cout << "g^in prod " << cmp << " is " << mpz_get_si(mat_element(dest, row, 0)) << "should be "<< mpz_get_si(check) <<"\n";
         // get DL
         /*mpz_sub(mat_element(dest, row, 0), mat_element(dest, row, 0), one); // subtract 1 from compression / ct0^sfk
-        mpz_invert(N_inv, eval.ctx->N, eval.ctx->Ns); // invert N
-        mpz_mul(mat_element(dest, row, 0), mat_element(dest, row, 0), N_inv); // divide compression / ct0^sfk -1  by N
+        mpz_tdiv_q(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
         */
         mpz_sub_ui(check, check, 1); // subtract 1 from compression / ct0^sfk
-        mpz_invert(N_inv, eval.ctx->N, eval.ctx->Ns); // invert N
-        mpz_mul(check, check, N_inv); // divide compression / ct0^sfk -1  by N
+        mpz_tdiv_q(check, check, eval.ctx->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(check, check, eval.ctx->Ns); // take mod of prev value
 
         std::cout << "check " << mpz_get_si(check) << "\n";

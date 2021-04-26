@@ -24,11 +24,11 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     while(row < plaintext->rows)
     {
         for(int col = 0; col < plaintext->cols; col++) {
-            mpz_pow_ui(tmp, mat_element(plaintext, row, col), 2);
-            mpz_add(norm, tmp);
+            mpz_pow_ui(tmp2, mat_element(plaintext, row, col), 2);
+            mpz_add(norm, norm, tmp2);
         }
         mpz_sqrt (norm, norm);      
-        if (mpz_cmp(norm, ctx->Mx) > 0) {
+        if (mpz_cmp(norm, enc.ctx->Mx) > 0) {
             throw std::invalid_argument("Plaintext value too large!");
         }
 
@@ -64,7 +64,8 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
         {
             mpz_powm(tmp, mat_element(enc.pk.data(), 0, col), nonce, enc.ctx->Ns); // power hp^r
             mpz_set(mat_element(ciphertext, row, col), tmp);
-            mpz_powm(tmp, enc.ctx->N + 1, mat_element(plaintext, row, col), enc.ctx->Ns);// power (N + 1)^xi
+            mpz_mul(tmp, enc.ctx->N, mat_element(plaintext, row, col), enc.ctx->Ns);// power (N + 1)^xi
+            mpz_add_ui(tmp, tmp, 1);
             mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp); // mult (N + 1)^xi * hp^r
             mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), enc.ctx->Ns);// mod prev val
         }
