@@ -9,7 +9,65 @@
 PubKeyEncr::PubKeyEncr(int security_level)
      :security_level(security_level)
 {
-    generate_key(security_level);
+    
+    mpz_init(this->N);
+    mpz_init(this->g);
+    mpz_init(this->p);
+    mpz_init(this->q);
+    mpz_init(this->lambda);
+
+
+    mpz_t pMin1;
+    mpz_t qMin1;
+    mpz_init(qMin1);
+    mpz_init(pMin1);
+    mpz_sub_ui(pMin1, this->p, 1);
+    mpz_sub_ui(qMin1, this->q, 1);
+
+    // N
+    mpz_init_set_si(this->p, 1);//167);
+    mpz_init_set_si(this->q, 1);//179);
+    generate_safe_prime(security_level, std::ref(this->p));
+    generate_safe_prime(security_level, std::ref(this->q));
+    mpz_mul(this->N, this->p, this->q);
+    mpz_lcm(this->lambda, pMin1, qMin1); //may need to change sub to mpz_sub_ui
+
+     //col = col + numThreads;
+    //}
+    
+
+	// Create random state to use as seed
+    gmp_randstate_t state;
+    gmp_randinit_mt(state);
+
+    mpz_t Ndiv2;
+    mpz_init(Ndiv2);
+    mpz_tdiv_q_ui(Ndiv2, this->N, 2);
+    
+    int star = 0;
+    while(!star){
+      mpz_urandomm(this->g, state, this->N);
+      star = 1;
+
+      if (mpz_cmp_si(this->g,0) <= 0 || mpz_cmp(this->g, Ndiv2) <= 0){
+        star = 0;
+      } else {
+          mpz_t gcd;
+          mpz_init(gcd);
+          mpz_gcd(gcd, this->g, this->N);
+
+          if (mpz_cmp_si(gcd,1) != 0){
+            star = 0;
+          }
+      }
+    }
+
+
+
+    mpz_clear(pMin1);
+    mpz_clear(qMin1);
+    mpz_clear(Ndiv2);
+
 }
 
 std::shared_ptr<PubKeyEncr> PubKeyEncr::Create(int security_level)
@@ -18,54 +76,12 @@ std::shared_ptr<PubKeyEncr> PubKeyEncr::Create(int security_level)
 }
 
 
-// Generate public and private keys (USE STRONGER RANDOM NUMBER GENERATOR!!!)
-void PubKeyEncr::generate_key_util(PubKeyEncr &pke, int security_level, int tid, int numThreads)
-{
-    //int col = tid;
-    //while(col < gen.msk_len)
-    //{
-    int col = tid;
-    mpz_init(this->N);
-    mpz_init(this->g);
-    mpz_init(this->p);
-    mpz_init(this->q);
-    mpz_init(this->lambda);
-
-    // N
-    mpz_init_set_si(this->p, 1);//167);
-    mpz_init_set_si(this->q, 1);//179);
-    generate_safe_prime(security_level, std::ref(this->p));
-    generate_safe_prime(security_level, std::ref(this->q));
-    mpz_mul(this->N, this->p, this->q);
-    mpz_lcm(this->lambda, this->p-1, this->q-1); //may need to change sub to mpz_sub_ui
-    
-     //col = col + numThreads;
-    //}
-}
-
-// Generate public key
-void PubKeyEncr::generate_key(int security_level)
-{
-
-    generate_key_util(*this, security_level, 0, 1);
-    // Define threadpool
-    //int numThreads = std::thread::hardware_concurrency();
-    //std::thread threads[numThreads];
-    //for(int i = 0; i < numThreads; i++)
-    //{
-    //    threads[i] = std::thread(generate_key_util, std::ref(*this), security_level, i, numThreads);
-    //}
-    //for(int i = 0; i < numThreads; i++)
-    //    threads[i].join();
-}
-
-
 // Utility function to encrypt data
-void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext, gmp_randstate_t state, int tid, int numThreads)
+void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext, mpz_t plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
     //int row = tid;
 
-    if (mpz_cmp(plaintext, this->N) >= 0) {
+    if (mpz_cmp(plaintext, pke->N) >= 0) {
         throw std::invalid_argument("Plaintext dimensions too large!");
     }
 
@@ -79,12 +95,12 @@ void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext
 
     mpz_t N2;
     mpz_init(N2);
-    mpz_mul(N2, this->N, this->N);
+    mpz_mul(N2, pke->N, pke->N);
 
     //while(row < plaintext->rows)
     //{
         // ENCRYPT
-        mpz_urandomm(nonce, state, this->N);
+        mpz_urandomm(nonce, state, pke->N);
         mpz_add_ui(nonce, nonce, 2);
 
       //  mpz_set_si(nonce, 4); // TEMP
@@ -93,10 +109,10 @@ void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext
         // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
         //for(int col = 0; col < plaintext->cols; col++)
         //{
-            mpz_powm(ciphertext, this->g, plaintext, N2);
-            mpz_powm(tmp, nonce, this->N, N2);
+            mpz_powm(ciphertext, pke->g, plaintext, N2);
+            mpz_powm(tmp, nonce, pke->N, N2);
             mpz_mul(ciphertext, ciphertext, tmp);
-
+            mpz_mod(ciphertext, ciphertext, N2);
         //}
         //row = row + numThreads;
    //}
@@ -110,7 +126,7 @@ void PubKeyEncr::encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext
  * @params : plaintext integer
  * @return : ciphertext
  */
-void PubKeyEncr::encrypt(mpz_t ciphertext, mpz_t plaintext)
+void PubKeyEncr::encrypt(std::shared_ptr<PubKeyEncr> pke,mpz_t ciphertext, mpz_t plaintext)
 {
     //if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
     //    throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
@@ -121,7 +137,7 @@ void PubKeyEncr::encrypt(mpz_t ciphertext, mpz_t plaintext)
     gmp_randstate_t state;
     gmp_randinit_mt(state);
 
-    encrypt_util(std::ref(*this), std::ref(ciphertext), std::ref(plaintext), state, 0, 1);
+    encrypt_util(pke, std::ref(ciphertext), std::ref(plaintext), state, 0, 1);
 
     // Define threadpool
     //int numThreads = plaintext->rows;
@@ -142,13 +158,13 @@ void PubKeyEncr::encrypt(mpz_t ciphertext, mpz_t plaintext)
 
 
 // Utility function to decrypt data
-void PubKeyEncr::decrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext, int tid, int numThreads)
+void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, mpz_t ciphertext, int tid, int numThreads)
 {
     //int row = tid;
 
     mpz_t N2;
     mpz_init(N2);
-    mpz_mul(N2, this->N, this->N);
+    mpz_mul(N2, pke->N, pke->N);
     if (mpz_cmp(ciphertext, N2) >= 0) {
         throw std::invalid_argument("Ciphertext dimensions too large!");
     }
@@ -169,28 +185,43 @@ void PubKeyEncr::decrypt_util(PubKeyEncr &pke, mpz_t plaintext, mpz_t ciphertext
         // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
         //for(int col = 0; col < plaintext->cols; col++)
         //{
-            mpz_powm(ciphertext, ciphertext, this->lambda, N2);
-            mpz_sub_ui(ciphertext, ciphertext, 1);
-            mpz_tdiv_q(ciphertext, ciphertext, this->N);
-            mpz_powm(tmp, this->g, this->lambda, N2);
+	
+    	    mpz_t modN;
+	    mpz_init(modN);
+	    mpz_t one;
+	    mpz_init_set_si(one, 1);
+            mpz_powm(ciphertext, ciphertext, pke->lambda, N2);
+	    mpz_mod(modN, one, pke->N);
+	    if (mpz_cmp(ciphertext, modN) == 0) {
+            	mpz_sub_ui(ciphertext, ciphertext, 1);
+            	mpz_tdiv_q(ciphertext, ciphertext, pke->N);
+	    }
+	    mpz_powm(tmp, pke->g, pke->lambda, N2);
+	    if (mpz_cmp(tmp, modN) == 0) {
+	    std::cout << "Tmp init: " << mpz_get_si(tmp) << "\n";
             mpz_sub_ui(tmp, tmp, 1);
-            mpz_tdiv_q(tmp, tmp, this->N);
-            mpz_tdiv_q(ciphertext, ciphertext, tmp);
-            mpz_mod(plaintext, ciphertext, this->N);
+	    std::cout << "Tmp after sub by 1: " << mpz_get_si(tmp) << "\n";
+            mpz_tdiv_q(tmp, tmp, pke->N);
+	    std::cout << "N: " << mpz_get_si(pke->N) << "\n";
+	    std::cout << "Tmp after div by N:" << mpz_get_si(tmp) << "\n"; 
+	    }
+	    mpz_tdiv_q(ciphertext, ciphertext, tmp);
+	    mpz_mod(plaintext, ciphertext, pke->N);
 
         //}
         //row = row + numThreads;
    //}
     mpz_clear(tmp);
     mpz_clear(N2);
+    mpz_clear(one);
+    mpz_clear(modN);
 }
-
 /**
  * Encrypt plaintext to get the corresponding ciphertext and commitment
  * @params : plaintext integer
  * @return : ciphertext
  */
-void PubKeyEncr::decrypt(mpz_t plaintext, mpz_t ciphertext)
+void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke,  mpz_t plaintext, mpz_t ciphertext)
 {
     //if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
     //    throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
@@ -199,7 +230,7 @@ void PubKeyEncr::decrypt(mpz_t plaintext, mpz_t ciphertext)
 
     // Create random state to use as seed
 
-    decrypt_util(std::ref(*this), std::ref(plaintext), std::ref(ciphertext),  0, 1);
+    decrypt_util(pke, std::ref(plaintext), std::ref(ciphertext),  0, 1);
 
     // Define threadpool
     //int numThreads = plaintext->rows;

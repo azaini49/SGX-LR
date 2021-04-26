@@ -11,9 +11,8 @@ class PubKeyEncr
         mpz_t g;
         PubKeyEncr(int security_level);
         static std::shared_ptr<PubKeyEncr> Create(int security_level);
-        void generate_key(int security_level);
-        void encrypt(mpz_t ciphertext, mpz_t m);
-        void decrypt(mpz_t dest, mpz_t ciphertext);
+        static void encrypt(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext, mpz_t m);
+        static void decrypt(std::shared_ptr<PubKeyEncr> pke,mpz_t dest, mpz_t ciphertext);
 
     private:
         PubKeyEncr() = delete;
@@ -24,8 +23,7 @@ class PubKeyEncr
         mpz_t lambda;
         void generate_sk();
         void generate_pk();
-        void generate_key_util(PubKeyEncr &pke, int security_level, int tid, int numThreads);
-        void generate_safe_prime(int bits, mpz_t prime);
-        void encrypt_util(PubKeyEncr &pke, mpz_t ciphertext, mpz_t plaintext, gmp_randstate_t state, int tid, int numThreads);
-        void decrypt_util(PubKeyEncr &pke, mpz_t dest, mpz_t ciphertext, int tid, int numThreads);
+        static void generate_safe_prime(int bits, mpz_t prime);
+        static void encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext, mpz_t plaintext, gmp_randstate_t state, int tid, int numThreads);
+        static void decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t dest, mpz_t ciphertext, int tid, int numThreads);
 };
