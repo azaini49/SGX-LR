@@ -225,8 +225,6 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
    //}
     mpz_clear(tmp);
     mpz_clear(N2);
-    mpz_clear(one);
-    mpz_clear(modN);
 }
 /**
  * Encrypt plaintext to get the corresponding ciphertext and commitment
