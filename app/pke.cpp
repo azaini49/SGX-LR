@@ -46,20 +46,38 @@ PubKeyEncr::PubKeyEncr(int security_level)
     
     int star = 0;
     while(!star){
-      mpz_urandomm(this->g, state, this->N);
+        mpz_t N2;
+        mpz_init(N2);
+      mpz_urandomm(this->g, state, N2);
       star = 1;
 
+      
       if (mpz_cmp_si(this->g,0) <= 0 || mpz_cmp(this->g, Ndiv2) <= 0){
         star = 0;
       } else {
           mpz_t gcd;
           mpz_init(gcd);
           mpz_gcd(gcd, this->g, this->N);
-
           if (mpz_cmp_si(gcd,1) != 0){
             star = 0;
           }
+          mpz_t val;
+          mpz_init(val);
+          
+          mpz_powm(val, this->g, this->lambda, N2);
+          mpz_sub_ui(val, val, 1);
+          mpz_tdiv_q(val, val, this->N);
+          mpz_gcd(gcd, val, this->N);
+          if (mpz_cmp_si(gcd,1) != 0){
+            star = 0;
+          }
+
+          mpz_clear(gcd);
+          mpz_clear(val);
+          
       }
+      mpz_clear(N2);
+        
     }
 
 
@@ -67,6 +85,8 @@ PubKeyEncr::PubKeyEncr(int security_level)
     mpz_clear(pMin1);
     mpz_clear(qMin1);
     mpz_clear(Ndiv2);
+    
+    
 
 }
 
@@ -186,25 +206,17 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
         //for(int col = 0; col < plaintext->cols; col++)
         //{
 	
-    	    mpz_t modN;
-	    mpz_init(modN);
-	    mpz_t one;
-	    mpz_init_set_si(one, 1);
-            mpz_powm(ciphertext, ciphertext, pke->lambda, N2);
-	    mpz_mod(modN, one, pke->N);
-	    if (mpz_cmp(ciphertext, modN) == 0) {
-            	mpz_sub_ui(ciphertext, ciphertext, 1);
-            	mpz_tdiv_q(ciphertext, ciphertext, pke->N);
-	    }
+    	
+        mpz_powm(ciphertext, ciphertext, pke->lambda, N2);
+        mpz_sub_ui(ciphertext, ciphertext, 1);
+        mpz_tdiv_q(ciphertext, ciphertext, pke->N);
 	    mpz_powm(tmp, pke->g, pke->lambda, N2);
-	    if (mpz_cmp(tmp, modN) == 0) {
 	    std::cout << "Tmp init: " << mpz_get_si(tmp) << "\n";
-            mpz_sub_ui(tmp, tmp, 1);
+        mpz_sub_ui(tmp, tmp, 1);
 	    std::cout << "Tmp after sub by 1: " << mpz_get_si(tmp) << "\n";
-            mpz_tdiv_q(tmp, tmp, pke->N);
+         mpz_tdiv_q(tmp, tmp, pke->N);
 	    std::cout << "N: " << mpz_get_si(pke->N) << "\n";
 	    std::cout << "Tmp after div by N:" << mpz_get_si(tmp) << "\n"; 
-	    }
 	    mpz_tdiv_q(ciphertext, ciphertext, tmp);
 	    mpz_mod(plaintext, ciphertext, pke->N);
 
