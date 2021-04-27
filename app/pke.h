@@ -21,6 +21,7 @@ class PubKeyEncr
         mpz_t p;
         mpz_t q;
         mpz_t lambda;
+        mpz_t mu;
         void generate_sk();
         void generate_pk();
         static void generate_safe_prime(int bits, mpz_t prime);

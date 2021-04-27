@@ -1,6 +1,7 @@
 #include "pke.h"
 #include <thread>
 #include <stdexcept>
+#include <ctime>
 
 /**
  * Constructer for PubKeyEncr
@@ -15,23 +16,25 @@ PubKeyEncr::PubKeyEncr(int security_level)
     mpz_init(this->p);
     mpz_init(this->q);
     mpz_init(this->lambda);
+    mpz_init(this->mu);
 
 
     mpz_t pMin1;
     mpz_t qMin1;
     mpz_init(qMin1);
     mpz_init(pMin1);
-    mpz_sub_ui(pMin1, this->p, 1);
-    mpz_sub_ui(qMin1, this->q, 1);
+    
 
     // N
-    mpz_init_set_si(this->p, 1);//167);
-    mpz_init_set_si(this->q, 1);//179);
+    mpz_init_set_si(this->p, 1);
+    mpz_init_set_si(this->q, 1);
     generate_safe_prime(security_level, std::ref(this->p));
     generate_safe_prime(security_level, std::ref(this->q));
+    mpz_sub_ui(pMin1, this->p, 1);
+    mpz_sub_ui(qMin1, this->q, 1);
     mpz_mul(this->N, this->p, this->q);
-    mpz_lcm(this->lambda, pMin1, qMin1); //may need to change sub to mpz_sub_ui
-
+    mpz_mul(this->lambda, pMin1, qMin1); //may need to change sub to mpz_sub_ui
+    mpz_invert(this->mu, this->lambda, this->N);
      //col = col + numThreads;
     //}
     
@@ -39,16 +42,22 @@ PubKeyEncr::PubKeyEncr(int security_level)
 	// Create random state to use as seed
     gmp_randstate_t state;
     gmp_randinit_mt(state);
+    gmp_randseed_ui(state, time(0));
 
     mpz_t Ndiv2;
     mpz_init(Ndiv2);
     mpz_tdiv_q_ui(Ndiv2, this->N, 2);
+
+    mpz_init_set(this->g, this->N);
+    mpz_add_ui(this->g, this->g, 1);
     
-    int star = 0;
+    /* int star = 0;
     while(!star){
         mpz_t N2;
         mpz_init(N2);
-      mpz_urandomm(this->g, state, N2);
+        mpz_mul(N2, this->N, this->N);
+        mpz_urandomm(this->g, state, N2);
+
       star = 1;
 
       
@@ -67,6 +76,7 @@ PubKeyEncr::PubKeyEncr(int security_level)
           mpz_powm(val, this->g, this->lambda, N2);
           mpz_sub_ui(val, val, 1);
           mpz_tdiv_q(val, val, this->N);
+          
           mpz_gcd(gcd, val, this->N);
           if (mpz_cmp_si(gcd,1) != 0){
             star = 0;
@@ -78,7 +88,7 @@ PubKeyEncr::PubKeyEncr(int security_level)
       }
       mpz_clear(N2);
         
-    }
+    } */
 
 
 
@@ -208,8 +218,12 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
 	
     	
         mpz_powm(ciphertext, ciphertext, pke->lambda, N2);
-        mpz_sub_ui(ciphertext, ciphertext, 1);
         mpz_tdiv_q(ciphertext, ciphertext, pke->N);
+        mpz_mul(plaintext, ciphertext, pke->mu);
+        mpz_mod(plaintext, plaintext, pke->N);
+
+        /* (ciphertext, ciphertext, 1);
+        
 	    mpz_powm(tmp, pke->g, pke->lambda, N2);
 	    std::cout << "Tmp init: " << mpz_get_si(tmp) << "\n";
         mpz_sub_ui(tmp, tmp, 1);
@@ -218,7 +232,7 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
 	    std::cout << "N: " << mpz_get_si(pke->N) << "\n";
 	    std::cout << "Tmp after div by N:" << mpz_get_si(tmp) << "\n"; 
 	    mpz_tdiv_q(ciphertext, ciphertext, tmp);
-	    mpz_mod(plaintext, ciphertext, pke->N);
+	    mpz_mod(plaintext, ciphertext, pke->N); */
 
         //}
         //row = row + numThreads;
