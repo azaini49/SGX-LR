@@ -64,9 +64,9 @@ int get_discrete_log(mpz_t &x, mpz_t p)
     mpz_class limit = pow(2, res->limit);
     while(i < limit)
     {
-        mpz_powm(tmp, res->g, i.get_mpz_t(), res->p);
+        mpz_powm(tmp, res->g, i.get_mpz_t(), res->N);
         lookup[mpz_class{tmp}] = i;
-        mpz_invert(tmp, tmp, res->p);
+        mpz_invert(tmp, tmp, res->N);
         lookup[mpz_class{tmp}] = -i;
         i = i + 1;
     }
@@ -104,10 +104,17 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
     mpz_t tmp3;
     mpz_init2(tmp3, SECURITY_BITS);
 
+    mpz_t tmp4;
+    mpz_init2(tmp4, SECURITY_BITS);
+
     mpz_t nd4;
     mpz_init(nd4);
     mpz_fdiv_q_ui(nd4, res->N, 4);
-    mpz_sub_ui(nd4,nd4,2);
+    mpz_sub_ui(nd4,nd4,2); 
+
+    mpz_t Nsq;
+    mpz_init(Nsq);
+    mpz_mul(Nsq, res->N, res->N);
 
     // Create random state to use as seed
     gmp_randstate_t state;
@@ -122,7 +129,7 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
 
         mpz_mul(tmp, mat_element(res->compression, row, 0), ct0);
         mpz_mod(tmp, tmp, res->Ns);
-        //get_discrete_log(tmp, res->p);
+        //get_discrete_log(tmp, res->N);
         mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(tmp, tmp, res->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(tmp, tmp, res->Ns); // take mod of prev value
@@ -136,12 +143,14 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
         {
             mpz_urandomm(nonce, state, nd4);
             mpz_add_ui(nonce, nonce, 2);
-            //mpz_mod(nonce, nonce, res->p);
+            //mpz_mod(nonce, nonce, res->N);
 
             // Set ct0 = g^r
-            mpz_powm(mat_element(res->cmt, row, 0),res->g, nonce, res->Ns);
+         
+	    mpz_powm(tmp4, res->g, nonce, res->Ns);
+            mpz_set(mat_element(res->cmt, row, 0), tmp4);	    
+	    //mpz_powm(mat_element(res->cmt, row, 0),res->g, nonce, res->N);
 
-            //ours
             mpz_powm(tmp2, mat_element(res->input, 0, 0), nonce, res->Ns); // power hp^r
             mpz_set(tmp3, tmp2);
 
@@ -149,18 +158,21 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
             mpz_add_ui(tmp2, tmp2, 1);
 
             mpz_mul(tmp3, tmp3, tmp2); // mult (N + 1)^xi * hp^r
-            mpz_mod(mat_element(res->output, row, 0), tmp3, res->Ns);// mod prev val
+            mpz_mod(tmp3, tmp3, res->Ns);// mod prev val
+	    mpz_set(mat_element(res->output, row, 0), tmp3);
 
         }
         else
             mpz_set(mat_element(res->output, row, 0), tmp);
         row = row + 1;
     }
+    /*
     mpz_clear(tmp);
     mpz_clear(tmp2);
     mpz_clear(tmp3);
     mpz_clear(nonce);
     mpz_clear(ct0);
+    */
     return COMPLETED;
 }
 
@@ -194,7 +206,7 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
         mpz_mul(tmp, mat_element(compression, row, 0), ct0);
         mpz_mod(tmp, tmp, res->Ns);
 
-        //get_discrete_log(tmp, res->p);
+        //get_discrete_log(tmp, res->N);
         mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(tmp, tmp, res->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(tmp, tmp, res->Ns); // take mod of prev value
