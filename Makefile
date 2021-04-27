@@ -4,7 +4,9 @@ SGX_SDK ?= ../sgxsdk
 SGX_MODE ?= SIM
 SGX_ARCH ?= x64
 SGX_DEBUG ?= 1
-SGX_GMP = ../sgxgmp_build
+## SGX_GMP = ../sgxgmp_build
+SGX_GMP = ../build-sgx-gmp
+
 
 CC = g++
 CXX = g++
