@@ -72,9 +72,9 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
     this->tp = tp;
     this->fn = fn;
     this->fp = fp;
-    this->accuracy = (tp + tn)/(tp + tn + fp + fn);
-    this->precision = (tp)/(tp + fp);
-    this->recall = (tp)/(tp + fn);
+    this->accuracy = (1.0*tp + tn)/(tp + tn + fp + fn);
+    this->precision = (1.0*tp)/(tp + fp);
+    this->recall = (1.0*tp)/(tp + fn);
     this->f1 = 2.0*(this->precision*this->recall)/(this->precision+ this->recall);
     //int k = 0;
     //for(int i = 0; i < diff->cols; i++)
