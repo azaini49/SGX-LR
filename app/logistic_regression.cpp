@@ -53,12 +53,33 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
         throw std::invalid_argument("Invalid Dimensions!");
     }
     Matrix diff = mat_init(ypred->rows, ypred->cols);
-    compute_hamming_distance(diff, ypred, ytrue);
-
+    //compute_hamming_distance(diff, ypred, ytrue);
+    //compute_vector_difference(diff, ypred, ytrue);
+    compute_stat_distance(diff, ypred, ytrue);
+    int tn = 0;
+    int tp = 0;
+    int fn = 0;
+    int fp = 0;
     int k = 0;
-    for(int i = 0; i < diff->cols; i++)
-        k = k + mpz_get_si(mat_element(diff, 0, i));
-    this->accuracy = 1 - ((float)k/diff->cols);
+    for(int i = 0; i < diff->cols; i++){
+      k = mpz_get_si(mat_element(diff, 0, i));
+      if(k == 0) tn = tn + 1.0;
+      else if(k == 1) tp = tp + 1.0;
+      else if(k == 2) fn = fn + 1.0;
+      else if(k == 3) fp = fp + 1.0;
+    }
+    this->tn = tn;
+    this->tp = tp;
+    this->fn = fn;
+    this->fp = fp;
+    this->accuracy = (1.0*tp + tn)/(tp + tn + fp + fn);
+    this->precision = (1.0*tp)/(tp + fp);
+    this->recall = (1.0*tp)/(tp + fn);
+    this->f1 = 2.0*(this->precision*this->recall)/(this->precision+ this->recall);
+    //int k = 0;
+    //for(int i = 0; i < diff->cols; i++)
+    //    k = k + mpz_get_si(mat_element(diff, 0, i));
+    //this->accuracy = 1 - ((float)k/diff->cols);
 
 }
 

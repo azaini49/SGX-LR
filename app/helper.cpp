@@ -154,10 +154,51 @@ void compute_hamming_distance(Matrix res, const Matrix A, const Matrix B, int ro
 
     for(int i = 0; i < range; i++)
     {
-        if(mpz_cmp(mat_element(A, row, A_c1 + i), mat_element(B, row, B_c1 + i)) == 0)
+      // 1, 0, -1
+        if(mpz_cmp(mat_element(A, row, A_c1 + i), mat_element(B, row, B_c1 + i)) == 0 && mat_element(A, row, A_c1 + i) == 0)
             mpz_set_si(mat_element(res, row, i), 0);
         else
             mpz_set_si(mat_element(res, row, i), 1);
+    }
+}
+
+void compute_stat_distance(Matrix res, const Matrix A, const Matrix B, int row, int A_c1, int A_c2, int B_c1, int B_c2)
+{
+    if(row < 0 || row >= A->rows || row >= B->rows)
+    {
+        std::cout << "A(" << A->rows << ", " << A->cols << ")\n";
+        std::cout << "B(" << B->rows << ", " << B->cols << ")\n";
+        std::cout << "Requested row : " << row << std::endl;
+        throw std::invalid_argument("Invalid dimensions!");
+    }
+    if(A_c2 == -1)
+        A_c2 = A->cols - 1;
+    if(B_c2 == -1)
+        B_c2 = B->cols - 1;
+    if(A_c2 - A_c1 != B_c2 - B_c1)
+    {
+        std::cout << "A : (" << A_c1 << ", " << A_c2 << ") : " << A_c2 - A_c1 + 1 << std::endl;
+        std::cout << "B : (" << B_c1 << ", " << B_c2 << ") : " << B_c2 - B_c1 + 1 << std::endl;
+        throw std::invalid_argument("[CHD] Invalid dimensions!");
+    }
+
+    int range = A_c2 - A_c1 + 1;
+    if(range != res->cols)
+        throw std::invalid_argument("[CHD] Invalid dimensions (res)!");
+
+    for(int i = 0; i < range; i++)
+    {
+      // 0 = TN, 1 = TP, 2 = FN, 3 = FP
+      if(mpz_get_si(mat_element(A, row, A_c1 + i)) == 0 && mpz_get_si(mat_element(B, row, B_c1 + i)) == 0){
+        mpz_set_si(mat_element(res, row, i), 0);
+      }else if(mpz_get_si(mat_element(A, row, A_c1 + i)) == 1 && mpz_get_si(mat_element(B, row, B_c1 + i))  == 1){
+        mpz_set_si(mat_element(res, row, i), 1);
+      }else if(mpz_get_si(mat_element(A, row, A_c1 + i)) == 0 && mpz_get_si(mat_element(B, row, B_c1 + i))  == 1){
+        mpz_set_si(mat_element(res, row, i), 2);
+      }else if(mpz_get_si(mat_element(A, row, A_c1 + i)) == 1 && mpz_get_si(mat_element(B, row, B_c1 + i))  == 0){
+        mpz_set_si(mat_element(res, row, i), 3);
+      }
+
     }
 }
 
