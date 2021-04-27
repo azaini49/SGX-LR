@@ -63,10 +63,10 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
     int k = 0;
     for(int i = 0; i < diff->cols; i++){
       k = mpz_get_si(mat_element(diff, 0, i));
-      if(k == 0) tn = tn + 1;
-      else if(k == 1) tp = tp + 1;
-      else if(k == 2) fn = fn + 1;
-      else if(k == 3) fp = fp + 1;
+      if(k == 0) tn = tn + 1.0;
+      else if(k == 1) tp = tp + 1.0;
+      else if(k == 2) fn = fn + 1.0;
+      else if(k == 3) fp = fp + 1.0;
     }
     this->tn = tn;
     this->tp = tp;

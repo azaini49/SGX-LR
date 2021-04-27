@@ -15,7 +15,7 @@ class Logistic_Regression
         float recall;
         float precision;
         float f1;
-        int tn, tp, fn, fp;
+        float tn, tp, fn, fp;
         Matrix weights;
         Logistic_Regression(std::shared_ptr<Context> context, int iter = 10, float reg_const = 5.0);
         ~Logistic_Regression();
