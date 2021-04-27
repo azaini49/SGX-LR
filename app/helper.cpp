@@ -242,6 +242,7 @@ void readFile(std::string filename, std::vector<std::vector<int> > &contents)
   size_t endpos;
   while(getline(src, buffer))
   {
+    strpos = 0;
     endpos= buffer.find(',');
     int i = 0;
     std::vector<int> tmp;
