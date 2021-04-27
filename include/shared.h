@@ -34,10 +34,10 @@ typedef struct response
     int start_idx;
     int batch_size;
     int limit;
-    
+
     float alpha;
     float learning_rate;
-    
+
     // General input matrix
     Matrix input;
 
@@ -52,7 +52,8 @@ typedef struct response
 
     // General output matrix
     Matrix output;
-    mpz_t p;
+    mpz_t Ns;
+    mpz_t N;
     mpz_t g;
     mpz_t final_sfk;
 
@@ -66,15 +67,15 @@ typedef struct request
     int start_idx;
     int batch_size;
     int limit;
-    mpz_t final_sfk;   
+    mpz_t final_sfk;
     float alpha;
     float learning_rate;
     char buffer[1000];
-    char out[1000];   
+    char out[1000];
 }*Request;
 
 Request init_request(int job_id);
 void init_response(Response res);
 void deserialize_request(Response res, Request req);
-Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt = 0, mpz_class p = 0, mpz_class g = 0, char* buff = NULL);
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt = 0, mpz_class N = 0, mpz_class Ns = 0, mpz_class g = 0, char* buff = NULL);
 int serialize_matrix(Matrix mat, uint8_t* buff);

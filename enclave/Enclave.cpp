@@ -55,7 +55,7 @@ int get_discrete_log(mpz_t &x, mpz_t p)
 /** Utility function to generate lookup table
  * Currently supports only num_threads = 1
  */
-int compute_lookup_table(Response res)
+/*int compute_lookup_table(Response res)
 {
     mpz_t tmp;
     mpz_init(tmp);
@@ -72,7 +72,7 @@ int compute_lookup_table(Response res)
     }
     mpz_clear(tmp);
     return COMPLETED;
-}
+}*/
 
 /**
  * Decrypt commitments and compute the FE result
@@ -104,6 +104,11 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
     mpz_t tmp3;
     mpz_init2(tmp3, SECURITY_BITS);
 
+    mpz_t nd4;
+    mpz_init(nd4);
+    mpz_fdiv_q_ui(nd4, res->N, 4);
+    mpz_sub_ui(nd4,nd4,2);
+
     // Create random state to use as seed
     gmp_randstate_t state;
     gmp_randinit_mt(state);
@@ -111,30 +116,41 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
     while(row < end + 1)
     {
         mpz_set(ct0, mat_element(res->cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, res->p);
-        mpz_invert(ct0, ct0, res->p);
+        mpz_powm(ct0, ct0, sfk, res->Ns);
+        mpz_invert(ct0, ct0, res->Ns);
         mpz_set_si(tmp, 1);
 
         mpz_mul(tmp, mat_element(res->compression, row, 0), ct0);
-        mpz_mod(tmp, tmp, res->p);
-        get_discrete_log(tmp, res->p);
+        mpz_mod(tmp, tmp, res->Ns);
+        //get_discrete_log(tmp, res->p);
+        mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
+        mpz_tdiv_q(tmp, tmp, res->N); // divide compression / ct0^sfk -1  by N
+        mpz_mod(tmp, tmp, res->Ns); // take mod of prev value
+
+
+
         if(activation == ACTIVATION)
             sigmoid(tmp, mpz_get_d(tmp));
 
         if(mode == ENCRYPT)
         {
-            mpz_urandomm(nonce, state, res->p);
+            mpz_urandomm(nonce, state, nd4);
             mpz_add_ui(nonce, nonce, 2);
-            mpz_mod(nonce, nonce, res->p);
+            //mpz_mod(nonce, nonce, res->p);
 
             // Set ct0 = g^r
-            mpz_powm(mat_element(res->cmt, row, 0),res->g, nonce, res->p);
+            mpz_powm(mat_element(res->cmt, row, 0),res->g, nonce, res->Ns);
 
-            mpz_powm(tmp2, mat_element(res->input, 0, 0), nonce, res->p);
+            //ours
+            mpz_powm(tmp2, mat_element(res->input, 0, 0), nonce, res->Ns); // power hp^r
             mpz_set(tmp3, tmp2);
-            mpz_powm(tmp2, res->g, tmp, res->p);
-            mpz_mul(tmp3, tmp3, tmp2);
-            mpz_mod(mat_element(res->output, row, 0), tmp3, res->p);
+
+            mpz_mul(tmp2, res->N, tmp);// power (N + 1)^xi
+            mpz_add_ui(tmp2, tmp2, 1);
+
+            mpz_mul(tmp3, tmp3, tmp2); // mult (N + 1)^xi * hp^r
+            mpz_mod(mat_element(res->output, row, 0), tmp3, res->Ns);// mod prev val
+
         }
         else
             mpz_set(mat_element(res->output, row, 0), tmp);
@@ -147,6 +163,8 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
     mpz_clear(ct0);
     return COMPLETED;
 }
+
+
 
 /**
  * Decrypt commitments and compute the FE result
@@ -169,13 +187,18 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
     while(row < end + 1)
     {
         mpz_set(ct0, mat_element(cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, res->p);
-        mpz_invert(ct0, ct0, res->p);
+        mpz_powm(ct0, ct0, sfk, res->Ns);
+        mpz_invert(ct0, ct0, res->Ns);
         mpz_set_si(tmp, 1);
 
         mpz_mul(tmp, mat_element(compression, row, 0), ct0);
-        mpz_mod(tmp, tmp, res->p);
-        get_discrete_log(tmp, res->p);
+        mpz_mod(tmp, tmp, res->Ns);
+
+        //get_discrete_log(tmp, res->p);
+        mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
+        mpz_tdiv_q(tmp, tmp, res->N); // divide compression / ct0^sfk -1  by N
+        mpz_mod(tmp, tmp, res->Ns); // take mod of prev value
+
         if(activation == ACTIVATION)
             sigmoid(tmp, mpz_get_d(tmp));
         mpz_set(mat_element(dest, row, 0), tmp);
@@ -185,6 +208,8 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
     mpz_clear(ct0);
     return COMPLETED;
 }
+
+
 
 /**
  * Function for updating the weights
@@ -199,7 +224,7 @@ int update_weights(Response res)
     struct e_matrix update;
     struct e_matrix update_trans;
     setup_matrix(&update, res->output->cols, res->output->rows);
-    
+
     // Compute update to be made
     int stat = row_inner_product(sfk_update, sk_2.data(), res->input, -1, 0, 0, res->start_idx, res->start_idx + res->batch_size - 1);
     if(stat == ERROR)
@@ -210,7 +235,7 @@ int update_weights(Response res)
     }
 
     evaluate_e(&update, res->compression, res->cmt, sfk_update, NO_ACTIVATION, res, 0, -1, NO_ENCRYPT);
-    
+
     int col = 0;
     mpz_t x;
     mpz_init(x);
@@ -343,7 +368,7 @@ int enclave_service(void* arg)
             {
                 case GENERATE_LOOKUP_TABLE:
                 {
-                    req->status = compute_lookup_table(&res);
+                    //req->status = compute_lookup_table(&res);
                     break;
                 }
                 case FINAL_PREDICTION:
@@ -428,4 +453,3 @@ void print_ematrix_e(const E_Matrix mat)
    }
    printf_enclave("\n");
 }
-                                                  

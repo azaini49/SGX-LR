@@ -33,12 +33,13 @@ void init_response(Response res)
     res->alpha = 0;
     res->learning_rate = 0;
     mpz_init(res->final_sfk);
-    mpz_init(res->p);
+    mpz_init(res->N);
+    mpz_init(res->Ns);
     mpz_init(res->g);
 
 }
 
-Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class p, mpz_class g, char* buff)
+Request serialize_request(int job_id, const Matrix input, const Matrix output, const Matrix compression, const Matrix cmt, mpz_class N, mpz_class Ns, mpz_class g, char* buff)
 {
     Request req = init_request(job_id);
     int idx = 0;
@@ -111,9 +112,16 @@ Request serialize_request(int job_id, const Matrix input, const Matrix output, c
     }
 
 
-    char* ptr = mpz_get_str(NULL, BASE, p.get_mpz_t());
+    char* ptr = mpz_get_str(NULL, BASE, N.get_mpz_t());
     uintptr_t upt = reinterpret_cast<uintptr_t>(ptr);
     char* tmp = (char*)&upt;
+    for(int i = 0; i < sizeof(uintptr_t); i++)
+        req->buffer[i + idx] = tmp[i];
+    idx = idx + sizeof(uintptr_t);
+
+    ptr = mpz_get_str(NULL, BASE, Ns.get_mpz_t());
+    upt = reinterpret_cast<uintptr_t>(ptr);
+    tmp = (char*)&upt;
     for(int i = 0; i < sizeof(uintptr_t); i++)
         req->buffer[i + idx] = tmp[i];
     idx = idx + sizeof(uintptr_t);
@@ -187,12 +195,20 @@ void deserialize_request(Response res, Request req)
         res->cmt = reinterpret_cast<Matrix>(cmt_p);
     idx = idx + sizeof(uintptr_t);
 
-    uintptr_t p_p;
-    memcpy(&p_p, &req->buffer[idx], sizeof(uintptr_t));
-    if(p_p == 0)
-        mpz_set_si(res->p, 0);
+    uintptr_t N_p;
+    memcpy(&N_p, &req->buffer[idx], sizeof(uintptr_t));
+    if(N_p == 0)
+        mpz_set_si(res->N, 0);
     else
-        mpz_set_str(res->p, reinterpret_cast<char*>(p_p), BASE);
+        mpz_set_str(res->N, reinterpret_cast<char*>(N_p), BASE);
+    idx = idx + sizeof(uintptr_t);
+
+    uintptr_t Ns_p;
+    memcpy(&Ns_p, &req->buffer[idx], sizeof(uintptr_t));
+    if(Ns_p == 0)
+        mpz_set_si(res->Ns, 0);
+    else
+        mpz_set_str(res->Ns, reinterpret_cast<char*>(Ns_p), BASE);
     idx = idx + sizeof(uintptr_t);
 
     uintptr_t g_p;

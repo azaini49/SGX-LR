@@ -202,7 +202,7 @@ int main(int argc, char const *argv[])
     }
 
     // Generate request for the enclave to setup sk_1
-    Request req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->Ns}, mpz_class{ctx->g});
+    Request req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
     req->key_id = 1;
     make_request(req);
 
@@ -258,10 +258,7 @@ int main(int argc, char const *argv[])
 
     keygen_1.key_der(weights, sky, sky_cca_j1, sky_cca_j2);
 
-    std::cout << "sky cca j1 : " << mpz_get_si(sky_cca_j1) << std::endl;
-    std::cout << "sky cca j1 : " << mpz_get_si(sky_cca_j2) << std::endl;
-
-    //eval.cca_check(cca_ct_xtest, cmt_xtest, weights, sky_cca_j1, sky_cca_j2);
+    eval.cca_check(cca_ct_xtest, cmt_xtest, weights, sky_cca_j1, sky_cca_j2);
 
 
 
