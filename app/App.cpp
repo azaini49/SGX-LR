@@ -194,12 +194,16 @@ int main(int argc, char const *argv[])
     eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_3.data(), 0, 0));
     transpose(ypred, ypredTrans2);
     mdl.compute_performance_metrics(ypred, ytestPlain);
+    std::cout << " " << std::endl;
     std::cout << "========= Performance Metrics =========" << std::endl;
     std::cout << "Accuracy : " << mdl.accuracy << std::endl;
     std::cout << "Precision : " << mdl.precision << std::endl;
     std::cout << "Recall : " << mdl.recall << std::endl;
     std::cout << "F1 : " << mdl.f1 << std::endl;
     std::cout << "tn : " << mdl.tn << " tp : " << mdl.tp << " fn : " << mdl.fn << " fp : " << mdl.fp << std::endl;
+
+    std::cout << " " << std::endl;
+    std::cout << "========= Exit with a coredump =========" << std::endl;
 
     req = serialize_request(EXIT_ENCLAVE, dummy, dummy, dummy, dummy);
     make_request(req);
