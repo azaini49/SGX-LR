@@ -71,7 +71,243 @@ int main(int argc, char const *argv[])
     }
     std::cout << "=> Enclave Created\n";
 
+// JESS's new sanity test for crypto
 
+
+    // Get content dimensions
+    int xtestRow = 5;
+    int xtestCol = 7;
+    std::cout << "Xtest row: " << xtestRow << std::endl;
+    std::cout << "Xtest col: " << xtestCol-2 << std::endl;
+
+    // Instantiate matrices
+
+    Matrix testInp = mat_init(xtestRow, xtestCol);
+
+    Matrix xtestPlain = mat_init(xtestRow, xtestCol-2);
+    Matrix ytestPlain = mat_init(1, xtestRow);
+    Matrix ypred = mat_init(ytestPlain->rows, ytestPlain->cols);
+    Matrix ypredTrans = mat_init(ypred->cols, ypred->rows);
+    Matrix ypredTrans2 = mat_init(ypred->cols, ypred->rows);
+
+    //Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
+    //Matrix cmt_xtest = mat_init(xtestEnc->rows, 1);
+
+    // Populate the matices
+    //populate(testInp, xtest);
+    mpz_t v;
+    mpz_init_set_si(v, 6);
+    set_matrix_element(testInp, 0, 0, v); // "label"
+    set_matrix_element(testInp, 1, 0, v); // "label"
+    set_matrix_element(testInp, 2, 0, v); // "label"
+    set_matrix_element(testInp, 3, 0, v); // "label"
+    set_matrix_element(testInp, 4, 0, v); // "label"
+    mpz_t w;
+    mpz_init_set_si(w, 6);
+    set_matrix_element(testInp, 0, 1, w); // "label"
+    set_matrix_element(testInp, 1, 1, w); // "label"
+    set_matrix_element(testInp, 2, 1, w); // "label"
+    set_matrix_element(testInp, 3, 1, w); // "label"
+    set_matrix_element(testInp, 4, 1, w); // "label"
+    mpz_t x;
+    mpz_init_set_si(x, 6);
+    set_matrix_element(testInp, 0, 2, x);
+    set_matrix_element(testInp, 1, 2, x);
+    set_matrix_element(testInp, 2, 2, x);
+    set_matrix_element(testInp, 3, 2, x);
+    set_matrix_element(testInp, 4, 2, x);
+    mpz_t y;
+    mpz_init_set_si(y, 6);
+    set_matrix_element(testInp, 0, 3, y);
+    set_matrix_element(testInp, 1, 3, y);
+    set_matrix_element(testInp, 2, 3, y);
+    set_matrix_element(testInp, 3, 3, y);
+    set_matrix_element(testInp, 4, 3, y);
+    mpz_t z;
+    mpz_init_set_si(z, 6);
+    set_matrix_element(testInp, 0, 4, z);
+    set_matrix_element(testInp, 1, 4, z);
+    set_matrix_element(testInp, 2, 4, z);
+    set_matrix_element(testInp, 3, 4, z);
+    set_matrix_element(testInp, 4, 4, z);
+    mpz_t o;
+    mpz_init_set_si(o, 6);
+    set_matrix_element(testInp, 0, 5, o);
+    set_matrix_element(testInp, 1, 5, o);
+    set_matrix_element(testInp, 2, 5, o);
+    set_matrix_element(testInp, 3, 5, o);
+    set_matrix_element(testInp, 4, 5, o);
+    mpz_t p;
+    mpz_init_set_si(p, 6);
+    set_matrix_element(testInp, 0, 6, p);
+    set_matrix_element(testInp, 1, 6, p);
+    set_matrix_element(testInp, 2, 6, p);
+    set_matrix_element(testInp, 3, 6, p);
+    set_matrix_element(testInp, 4, 6, p);
+    std::cout << "=> Populated test matrix" << std::endl;
+
+
+    // Divide test data from test labels
+    mat_splice(xtestPlain, testInp, 0, testInp->rows-1, 1, testInp->cols-2);
+    Matrix tmp2 = mat_init(xtestRow, 1);
+    mat_splice(tmp2, testInp, 0, testInp->rows-1, testInp->cols-1, testInp->cols-1);
+    transpose(ytestPlain, tmp2);
+
+
+    for (int i = 0; i < xtestPlain->cols; i++){
+      printf("x plain: %ld\n", mpz_get_si(mat_element(xtestPlain, 0, i)));
+      //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
+    }
+
+
+    std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
+    start = std::chrono::high_resolution_clock::now();
+
+    // Create entities required for
+    SECURITY_BITS = 256;
+
+    auto ctx = Context::Create(SECURITY_BITS, 500, 500);
+
+    // Make a request to setup the lookup table for discrete log/
+    Matrix dummy = NULL;
+    /*Request  req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->Ns}, mpz_class{ctx->g});
+    req->limit = 10;
+    make_request(req);
+    */
+
+
+    // Generate pk and sk to encrypt xtest
+    Keygen keygen_1(ctx, xtestPlain->cols, false);
+    Public_Key pk_1 = keygen_1.public_key();
+
+    std::shared_ptr<Secret_Key> app_sk_1 = std::make_unique<Secret_Key>(keygen_1.secret_key());
+    //std::cout << "keys\n";
+    //printf("pk=%ld\n", mpz_get_si(pk_1));
+    //printf("sk=%ld\n", mpz_get_si(app_sk_1));
+
+    Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
+    Matrix cmt_xtest = mat_init(xtestEnc->rows, 1);
+    Matrix cca_ct_xtest = mat_init(xtestEnc->rows, 1);
+
+    // Instantiate encryptor
+    Encryptor enc_1(ctx, pk_1);
+    enc_1.encrypt(xtestEnc, cmt_xtest, xtestPlain, cca_ct_xtest);
+
+    for (int i = 0; i < xtestEnc->rows; i++){
+      //printf("x          cmt: %ld\n", mpz_get_si(mat_element(cmt_xtest, i, 0)));
+      for (int j = 0; j < xtestEnc->cols; j++){
+        //printf("x enc: %ld\n", mpz_get_si(mat_element(xtestEnc, i, j)));
+        //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
+      }
+    }
+
+    // Generate request for the enclave to setup sk_1
+    Request req = serialize_request(SET_FE_SECRET_KEY, app_sk_1->data(), dummy, dummy, dummy, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
+    req->key_id = 1;
+    make_request(req);
+
+    end = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    std::cout << "=> Setup : " << duration << " microseconds\n";
+
+
+    Evaluator eval(ctx);
+
+    //Create app lookup table
+    //compute_lookup_table(ctx, 10);
+    //std::cout << "lookup table\n";
+
+
+    // weights
+    Matrix weights = mat_init(1, xtestEnc->cols); //xtestEnc->cols);
+    mpz_t a;
+    mpz_init_set_si(a, 7);
+    set_matrix_element(weights, 0, 0, a);
+    mpz_t b;
+    mpz_init_set_si(b, 7);
+    set_matrix_element(weights, 0, 1, b);
+    mpz_t c;
+    mpz_init_set_si(c, 7);
+    set_matrix_element(weights, 0, 2, c);
+    mpz_t d;
+    mpz_init_set_si(d, 7);
+    set_matrix_element(weights, 0, 3, d);
+    mpz_t e;
+    mpz_init_set_si(e, 7);
+    set_matrix_element(weights, 0, 4, e);
+    mpz_t f;
+    mpz_init_set_si(f, 7);
+    set_matrix_element(weights, 0, 5, e);
+    mpz_t g;
+    mpz_init_set_si(g, 7);
+    set_matrix_element(weights, 0, 7, e);
+
+    for (int i = 0; i < weights->cols; i++){
+      printf("y: %ld\n", mpz_get_si(mat_element(weights, 0, i)));
+      //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
+    }
+
+    mpz_t sky;
+    mpz_init(sky);
+
+    mpz_t sky_cca_j1;
+    mpz_t sky_cca_j2;
+
+    mpz_init(sky_cca_j1);
+    mpz_init(sky_cca_j2);
+
+    keygen_1.key_der(weights, sky, sky_cca_j1, sky_cca_j2);
+
+   // eval.cca_check(cca_ct_xtest, cmt_xtest, weights, sky_cca_j1, sky_cca_j2);
+
+
+
+    //mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval, pk_3);
+    Timer timer("Prediction Time");
+    Matrix compression = mat_init(xtestEnc->rows, 1);
+//    eval.compress(compression, xtestEnc, weights); // raise to the y_i (weight_i)
+    //req = serialize_request(FINAL_PREDICTION, pk_1.data(), ypredTrans, compression, cmt_xtest, mpz_class{ctx->p}, mpz_class{ctx->g});
+    //make_request(req);
+    //delete_matrix(compression);
+
+
+
+
+    // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
+ //   eval.evaluate(ypredTrans2, compression, cmt_xtest, sky);
+ 
+    // from predict
+ 
+    eval.compress(compression, xtestEnc, weights);
+    Request req = serialize_request(FINAL_PREDICTION, pk_1.data(), ypred, compression, cmt_xtext, mpz_class{eval.ctx->N}, mpz_class{eval.ctx->Ns}, mpz_class{eval.ctx->g});
+    make_request(req);
+ 
+ 
+ 
+    transpose(ypred, ypredTrans2);
+    mdl.compute_performance_metrics(ypred, ytestPlain);
+    //std::cout << "Accuracy : " << mdl.accuracy << std::endl;
+    
+    for (int i = 0; i < ypred->cols; i++){
+      printf("Out: %ld\n", mpz_get_si(mat_element(ypred, 0, i)));
+    }
+
+    std::cout << "\n====== EXITING ENCLAVE =====\n";
+    req = serialize_request(EXIT_ENCLAVE, dummy, dummy, dummy, dummy);
+    make_request(req);
+    sgx_destroy_enclave(global_eid);
+    std::cout << "=> Enclave Destroyed\n";
+
+
+
+    // ML TEST 
+
+
+
+
+
+
+/*
     // Retrive training and testing data to process from csv files
     // Get csv contents containing train data
     std::string trainFile(dir + "/train.csv");
@@ -131,12 +367,12 @@ int main(int argc, char const *argv[])
     Matrix tmp2 = mat_init(xtestRow, 1);
     mat_splice(tmp2, testInp, 0, testInp->rows-1, testInp->cols-1, testInp->cols-1);
     transpose(ytestPlain, tmp2);
-
+*/
     /*******************************************************************************************************
      * Input Data Processing Ends
      * Setup For Training Begins
      *******************************************************************************************************/
-
+/*
     std::chrono::time_point<std::chrono::high_resolution_clock>  start, end;
     start = std::chrono::high_resolution_clock::now();
 
@@ -144,18 +380,19 @@ int main(int argc, char const *argv[])
     SECURITY_BITS = 256;
 
     auto ctx = Context::Create(SECURITY_BITS, 500, 500);
-
+*/
     // Make a request to setup the lookup table for discrete log/
-    Matrix dummy = NULL;
+//    Matrix dummy = NULL;
     /*Request  req = serialize_request(GENERATE_LOOKUP_TABLE, dummy, dummy, dummy, dummy, mpz_class{ctx->Ns}, mpz_class{ctx->g});
     req->limit = 10;
     make_request(req);
     */
 
-
+/*
     // Generate pk and sk to encrypt xtest
     Keygen keygen_1(ctx, xtestPlain->cols, false);
     Public_Key pk_1 = keygen_1.public_key();
+//    Secret_Key sk_1 = keygen_1.secret_key();
     std::shared_ptr<Secret_Key> app_sk_1 = std::make_unique<Secret_Key>(keygen_1.secret_key());
 
     Matrix cca_ct_xtest = mat_init(xtestEnc->rows, 1);
@@ -194,13 +431,13 @@ int main(int argc, char const *argv[])
     mdl.train(xtrainEnc, xtrainTransEnc, ytrainPlain, cmt_xtrain, cmt_xtrain_trans, 256, 0.0004);
 
     Evaluator eval(ctx);
-    Keygen keygen_3(ctx, 1, false);
-    Public_Key pk_3 = keygen_3.public_key();
-    Secret_Key app_sk_3 = keygen_3.secret_key();
+//    Keygen keygen_3(ctx, 1, false);
+//    Public_Key pk_3 = keygen_3.public_key();
+//    Secret_Key app_sk_3 = keygen_3.secret_key();
 
-    mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval, pk_3);
-    eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(app_sk_3.data(), 0, 0));
-    transpose(ypred, ypredTrans2);
+    mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval, pk_1);
+    //eval.evaluate(ypredTrans2, ypredTrans, cmt_xtest, mat_element(sk_1.data(), 0, 0));
+    transpose(ypred, ypredTrans);
     mdl.compute_performance_metrics(ypred, ytestPlain);
 
     std::cout << " " << std::endl;
@@ -212,7 +449,7 @@ int main(int argc, char const *argv[])
     std::cout << "tn : " << mdl.tn << " tp : " << mdl.tp << " fn : " << mdl.fn << " fp : " << mdl.fp << std::endl;
 
     std::cout << " " << std::endl;
-
+*/
 
 /*
     mpz_t sky;
@@ -229,12 +466,12 @@ int main(int argc, char const *argv[])
     eval.cca_check(cca_ct_xtest, cmt_xtest, weights, sky_cca_j1, sky_cca_j2);
 */
 
-
+/*
     std::cout << "\n====== EXITING ENCLAVE =====\n";
     req = serialize_request(EXIT_ENCLAVE, dummy, dummy, dummy, dummy);
     make_request(req);
     sgx_destroy_enclave(global_eid);
     std::cout << "=> Enclave Destroyed\n";
-
+*/
     return 0;
 }

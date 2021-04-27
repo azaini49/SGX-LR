@@ -297,7 +297,7 @@ int predict_final(Response res)
 {
     if(res->input == NULL || res->output == NULL || res->compression == NULL || res->cmt == NULL)
         return ERROR;
-    int result = evaluate(sfk, ACTIVATION, res, 0, -1, ENCRYPT);
+    int result = evaluate(sfk, ACTIVATION, res, 0, -1, NO_ENCRYPT); // changed Jess
     return result;
 }
 

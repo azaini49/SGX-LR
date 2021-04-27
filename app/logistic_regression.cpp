@@ -36,9 +36,7 @@ void Logistic_Regression::predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Ev
     Matrix compression = mat_init(xtest_enc->rows, 1);
     eval.compress(compression, xtest_enc, this->weights);
     Request req = serialize_request(FINAL_PREDICTION, pk.data(), ypred, compression, cmt, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
-    printf("FAIL HERE\n");
     make_request(req);
-    printf("EXITING");
     //delete_matrix(compression);
 }
 
