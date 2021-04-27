@@ -41,6 +41,7 @@ void compute_lookup_table(std::shared_ptr<Context> ctx, int bits);
 void get_discrete_log(mpz_t x, std::shared_ptr<Context> ctx);
 void make_request(Request req);
 void compute_hamming_distance(Matrix res, const Matrix A, const Matrix B, int row = 0, int A_c1 = 0, int A_c2 = -1, int B_c1 = 0, int B_c2 = -1);
+void compute_stat_distance(Matrix res, const Matrix A, const Matrix B, int row = 0, int A_c1 = 0, int A_c2 = -1, int B_c1 = 0, int B_c2 = -1);
 void compute_vector_difference(Matrix res, const Matrix A, const Matrix B, int row = 0, int A_c1 = 0, int A_c2 = -1, int B_c1 = 0, int B_c2 = -1);
 void readFile(std::string filename, std::vector<std::vector<int> > &contents);
 void populate(Matrix inp, std::vector<std::vector<int> > xtest);

@@ -53,12 +53,33 @@ void Logistic_Regression::compute_performance_metrics(const Matrix ypred, const 
         throw std::invalid_argument("Invalid Dimensions!");
     }
     Matrix diff = mat_init(ypred->rows, ypred->cols);
-    compute_hamming_distance(diff, ypred, ytrue);
-
+    //compute_hamming_distance(diff, ypred, ytrue);
+    //compute_vector_difference(diff, ypred, ytrue);
+    compute_stat_distance(diff, ypred, ytrue);
+    int tn = 0;
+    int tp = 0;
+    int fn = 0;
+    int fp = 0;
     int k = 0;
-    for(int i = 0; i < diff->cols; i++)
-        k = k + mpz_get_si(mat_element(diff, 0, i));
-    this->accuracy = 1 - ((float)k/diff->cols);
+    for(int i = 0; i < diff->cols; i++){
+      k = mpz_get_si(mat_element(diff, 0, i));
+      if(k == 0) tn = tn + 1;
+      else if(k == 1) tp = tp + 1;
+      else if(k == 2) fn = fn + 1;
+      else if(k == 3) fp = fp + 1;
+    }
+    this->tn = tn;
+    this->tp = tp;
+    this->fn = fn;
+    this->fp = fp;
+    this->accuracy = (tp + tn)/(tp + tn + fp + fn);
+    this->precision = (tp)/(tp + fp);
+    this->recall = (tp)/(tp + fn);
+    this->f1 = 2.0*(this->precision*this->recall)/(this->precision+ this->recall);
+    //int k = 0;
+    //for(int i = 0; i < diff->cols; i++)
+    //    k = k + mpz_get_si(mat_element(diff, 0, i));
+    //this->accuracy = 1 - ((float)k/diff->cols);
 
 }
 
@@ -141,10 +162,10 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         make_request(train_req);
 
         transpose(ypred_trans, ypred);
-       
+
 	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-        
+
         // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
@@ -157,7 +178,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         update_weights_req->alpha = alpha;
         update_weights_req->learning_rate = learning_rate;
         make_request(update_weights_req);
-    
+
         start_idx = (start_idx + batchSize) % xtrain_enc->rows;
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;
