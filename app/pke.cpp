@@ -2,6 +2,7 @@
 #include <thread>
 #include <stdexcept>
 #include <ctime>
+#include <iostream>
 
 /**
  * Constructer for PubKeyEncr
@@ -26,10 +27,11 @@ PubKeyEncr::PubKeyEncr(int security_level)
     
 
     // N
-    mpz_init_set_si(this->p, 167); //1);
-    mpz_init_set_si(this->q, 179);//1);
+    mpz_init_set_si(this->p, 1); //1);
+    mpz_init_set_si(this->q, 1);//1);
     generate_safe_prime(security_level, std::ref(this->p));
     generate_safe_prime(security_level, std::ref(this->q));
+    std::cout << "p and q: " << mpz_get_si(this->p) << " " << mpz_get_si(this->q) << "\n";
     mpz_sub_ui(pMin1, this->p, 1);
     mpz_sub_ui(qMin1, this->q, 1);
     mpz_mul(this->N, this->p, this->q);
@@ -43,7 +45,6 @@ PubKeyEncr::PubKeyEncr(int security_level)
     gmp_randstate_t state;
     gmp_randinit_mt(state);
     gmp_randseed_ui(state, time(0));
-
     mpz_t Ndiv2;
     mpz_init(Ndiv2);
     mpz_tdiv_q_ui(Ndiv2, this->N, 2);
@@ -140,7 +141,9 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext,
         //for(int col = 0; col < plaintext->cols; col++)
         //{
             mpz_powm(ciphertext, pke->g, plaintext, N2);
-            mpz_powm(tmp, nonce, pke->N, N2);
+	    std::cout << "raw ciphertext: " << mpz_get_si(ciphertext) << "\n";
+	    mpz_powm(tmp, nonce, pke->N, N2);
+	    std::cout << "randomness: " << mpz_get_si(tmp) << "\n";
             mpz_mul(ciphertext, ciphertext, tmp);
             mpz_mod(ciphertext, ciphertext, N2);
         //}
@@ -291,22 +294,34 @@ void PubKeyEncr::generate_safe_prime(int bits, mpz_t prime)
 {
     mpz_t num;
     mpz_init(num);
-    mpz_set_ui(num, 1 << (bits-1));
-
+    gmp_randstate_t state;
+    gmp_randinit_mt(state);
+    gmp_randseed_ui(state, time(0)); 
+    mpz_urandomb(num, state, bits);
+    std::cout << "Random: " << mpz_get_si(num) << "\n";
+    mpz_t security;
+    mpz_init(security);
+    int val = (1 << (bits -1)) | 1;
+    mpz_set_ui(security,val);
+    mpz_ior(num, num, security);
+    std::cout << "Random num: " << mpz_get_si(num) << "\n";
     mpz_t q;
     mpz_init(q);
 
-
+int count = 0;
     while(true)
     {
+	count++;
         mpz_nextprime(q, num);
         mpz_addmul_ui(prime, q, 2);
 
-        if(mpz_probab_prime_p(prime, 30) > 0)
+        if(mpz_probab_prime_p(prime, 12) > 0)
             break;
-        mpz_set_si(prime, 1);
+        mpz_set_ui(prime, 1);
         mpz_set(num, q);
     }
+    std::cout << "num tries to generate prime: " << count << "\n";
     mpz_clear(q);
     mpz_clear(num);
+    gmp_randclear(state);
 }
