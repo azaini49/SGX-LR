@@ -26,8 +26,8 @@ PubKeyEncr::PubKeyEncr(int security_level)
     
 
     // N
-    mpz_init_set_si(this->p, 1);
-    mpz_init_set_si(this->q, 1);
+    mpz_init_set_si(this->p, 167); //1);
+    mpz_init_set_si(this->q, 179);//1);
     generate_safe_prime(security_level, std::ref(this->p));
     generate_safe_prime(security_level, std::ref(this->q));
     mpz_sub_ui(pMin1, this->p, 1);
@@ -130,10 +130,10 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext,
     //while(row < plaintext->rows)
     //{
         // ENCRYPT
-        mpz_urandomm(nonce, state, pke->N);
-        mpz_add_ui(nonce, nonce, 2);
+        //mpz_urandomm(nonce, state, pke->N);
+        //mpz_add_ui(nonce, nonce, 2);
 
-      //  mpz_set_si(nonce, 4); // TEMP
+        mpz_set_si(nonce, 3); // TEMP
 
 
         // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
