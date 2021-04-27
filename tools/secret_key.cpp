@@ -28,20 +28,26 @@ Secret_Key::Secret_Key(const Matrix data)
 
 Secret_Key::~Secret_Key()
 {
-    delete_matrix(this->data_);
+    //delete_matrix(this->data_);
 }
 
 void Secret_Key::init(int key_len)
 {
     this->key_len = key_len;
     this->data_= mat_init(1, key_len);
+    this->data_cca_j1_= mat_init(1, key_len);
+    this->data_cca_j2_= mat_init(1, key_len);
 }
 
-void Secret_Key::set_key(const Matrix data)
+void Secret_Key::set_key(const Matrix data, const Matrix data_cca_j1, const Matrix data_cca_j2)
 {
     this->key_len = data->cols;
     this->data_= mat_init(1, key_len);
+    this->data_cca_j1_= mat_init(1, key_len);
+    this->data_cca_j2_= mat_init(1, key_len);
     mat_copy(this->data_, data);
+    mat_copy(this->data_cca_j1_, data);
+    mat_copy(this->data_cca_j2_, data);
 }
 
 

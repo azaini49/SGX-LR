@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <iostream>
+#include <ctime>
 
 /*
  * Default private constructor to initialize the context object
@@ -15,6 +16,8 @@ Context::Context(int security_level, int Mx, int My)
     {
         throw "Illegal parameters for context initialization.";
     }
+
+    std::cout << "\n==== GENERATING CONTEXT ====\n";
 
     // Initialize the FEO object
     mpz_init(this->N);
@@ -44,10 +47,11 @@ Context::Context(int security_level, int Mx, int My)
       mpz_mul(this->Ns, this->N, this->N);
     }
 
+    std::cout << "=> Modulous = " << mpz_get_si(this->Ns) << "\n";
 
     generator();
 
-    std::cout << "G= " << mpz_get_si(this->g) << "\n";
+    std::cout << "=> Generator = " << mpz_get_si(this->g) << "\n";
 
     if (mpz_cmp_si(this->Ns, Mt) < 0){
       throw "Message space too Large for N^s.";
@@ -102,6 +106,8 @@ void Context::generator()
     // Create random state to use as seed
     gmp_randstate_t state;
     gmp_randinit_mt(state);
+
+    gmp_randseed_ui(state, time(0));
 
     // U = Z*_{N^{s+1}}
     mpz_t u;

@@ -14,7 +14,7 @@ Encryptor::Encryptor(std::shared_ptr<Context> context, const Public_Key &pub_key
 }
 
 // Utility function to encrypt data
-void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
+void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitment, Matrix cca_ct, const Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
     int row = tid;
 
@@ -37,6 +37,7 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
     mpz_t nd4;
     mpz_init(nd4);
     mpz_fdiv_q_ui(nd4, enc.ctx->N, 4);
+    mpz_sub_ui(nd4,nd4,2);
 
 
     while(row < plaintext->rows)
@@ -55,8 +56,6 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
         mpz_urandomm(nonce, state, nd4);
         mpz_add_ui(nonce, nonce, 2);
 
-      //  mpz_set_si(nonce, 4); // TEMP
-
         mpz_powm(mat_element(commitment, row, 0), enc.ctx->g, nonce, enc.ctx->Ns); // Set b = g^r
 
         // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
@@ -68,7 +67,25 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
             mpz_add_ui(tmp, tmp, 1);
             mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp); // mult (N + 1)^xi * hp^r
             mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), enc.ctx->Ns);// mod prev val
+
+            if (enc.pk.cca){ // TODO check
+                // hp_j1 * r
+                mpz_mul(tmp, mat_element(enc.pk.data_cca_j1(), 0, col), nonce);
+
+                // hp_j2 * r
+                mpz_mul(tmp2, mat_element(enc.pk.data_cca_j2(), 0, col), nonce);
+
+                // sum
+                mpz_add(tmp, tmp, tmp2);
+
+                // g ^ sum
+                mpz_powm(mat_element(cca_ct, row, col), enc.ctx->g, tmp, enc.ctx->Ns); // Set b = g^r
+
+            }
+
+
         }
+
         row = row + numThreads;
     }
     mpz_clear(nd4);
@@ -84,12 +101,17 @@ void Encryptor::encrypt_util(Encryptor &enc, Matrix ciphertext, Matrix commitmen
  * @params : plaintext matrix
  * @return : ciphertext, commitment
  */
-void Encryptor::encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext)
+void Encryptor::encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext, const Matrix cca_ct)
 {
     if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
-        throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
+        throw std::invalid_argument("Ciphertext and plaintext dimensions do not match!");
     if(commitment->rows != plaintext->rows || commitment->cols != 1)
-        throw std::invalid_argument("Invalid dimensions for commitment matrix");
+        throw std::invalid_argument("Invalid dimensions for commitment matrix!");
+    if(this->pk.cca && cca_ct == NULL){
+        throw std::invalid_argument("Need CCA commitment!");
+    }
+
+    std::cout << "\n======== ENCRYPTING ========\n";
 
     // Create random state to use as seed
     gmp_randstate_t state;
@@ -104,10 +126,10 @@ void Encryptor::encrypt(Matrix ciphertext, Matrix commitment, const Matrix plain
     std::thread threads[numThreads];
     for(int i = 0; i < numThreads; i++)
     {
-        threads[i] = std::thread(encrypt_util, std::ref(*this), std::ref(ciphertext), std::ref(commitment), std::ref(plaintext), state, i, numThreads);
+        threads[i] = std::thread(encrypt_util, std::ref(*this), std::ref(ciphertext), std::ref(commitment), std::ref(cca_ct), std::ref(plaintext), state, i, numThreads);
     }
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
 
-
+    std::cout << "=> " << ciphertext->rows << "x" << ciphertext->cols << " Ciphertext Matrix and Commitment Value Made\n";
 }

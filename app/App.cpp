@@ -61,6 +61,7 @@ int main(int argc, char const *argv[])
     else
         dir = argv[1];
 
+    std::cout << "\n===== LAUNCHING ENCLAVE ====\n";
     // Launch enclave
     int enclave_status = launch_enclave();
     if(enclave_status != SGX_SUCCESS)
@@ -68,6 +69,7 @@ int main(int argc, char const *argv[])
         std::cout << "Failed to launch enclave. Exiting...\n";
         exit(EXIT_FAILURE);
     }
+    std::cout << "=> Enclave Created\n";
 
     // JESS's new sanity test for crypto
 
@@ -88,7 +90,6 @@ int main(int argc, char const *argv[])
     Matrix ypredTrans = mat_init(ypred->cols, ypred->rows);
     Matrix ypredTrans2 = mat_init(ypred->cols, ypred->rows);
 
-    std::cout << "Matrices init last" << std::endl;
     //Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
     //Matrix cmt_xtest = mat_init(xtestEnc->rows, 1);
 
@@ -143,7 +144,7 @@ int main(int argc, char const *argv[])
     set_matrix_element(testInp, 2, 6, p);
     set_matrix_element(testInp, 3, 6, p);
     set_matrix_element(testInp, 4, 6, p);
-    std::cout << "Populated test matrix" << std::endl;
+    std::cout << "=> Populated test matrix" << std::endl;
 
 
     // Divide test data from test labels
@@ -164,14 +165,8 @@ int main(int argc, char const *argv[])
 
     // Create entities required for
     SECURITY_BITS = 256;
-    mpz_t prime;
-    mpz_t gen;
-    mpz_init_set_si(prime, 13);
-    mpz_init_set_si(gen, 3);
 
     auto ctx = Context::Create(SECURITY_BITS, 500, 500);
-    printf("context: generator=%ld\n", mpz_get_si(ctx->g));
-    printf("context: mod=%ld\n", mpz_get_si(ctx->Ns));
 
     // Make a request to setup the lookup table for discrete log/
     Matrix dummy = NULL;
@@ -182,26 +177,26 @@ int main(int argc, char const *argv[])
 
 
     // Generate pk and sk to encrypt xtest
-    Keygen keygen_1(ctx, xtestPlain->cols);
+    Keygen keygen_1(ctx, xtestPlain->cols, false);
     Public_Key pk_1 = keygen_1.public_key();
 
     std::shared_ptr<Secret_Key> app_sk_1 = std::make_unique<Secret_Key>(keygen_1.secret_key());
-    std::cout << "keys\n";
+    //std::cout << "keys\n";
     //printf("pk=%ld\n", mpz_get_si(pk_1));
     //printf("sk=%ld\n", mpz_get_si(app_sk_1));
 
     Matrix xtestEnc = mat_init(xtestPlain->rows, xtestPlain->cols);
     Matrix cmt_xtest = mat_init(xtestEnc->rows, 1);
-
+    Matrix cca_ct_xtest = mat_init(xtestEnc->rows, 1);
 
     // Instantiate encryptor
     Encryptor enc_1(ctx, pk_1);
-    enc_1.encrypt(xtestEnc, cmt_xtest, xtestPlain);
+    enc_1.encrypt(xtestEnc, cmt_xtest, xtestPlain, cca_ct_xtest);
 
     for (int i = 0; i < xtestEnc->rows; i++){
-      printf("x          cmt: %ld\n", mpz_get_si(mat_element(cmt_xtest, i, 0)));
+      //printf("x          cmt: %ld\n", mpz_get_si(mat_element(cmt_xtest, i, 0)));
       for (int j = 0; j < xtestEnc->cols; j++){
-        printf("x enc: %ld\n", mpz_get_si(mat_element(xtestEnc, i, j)));
+        //printf("x enc: %ld\n", mpz_get_si(mat_element(xtestEnc, i, j)));
         //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
       }
     }
@@ -213,7 +208,7 @@ int main(int argc, char const *argv[])
 
     end = std::chrono::high_resolution_clock::now();
     auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-    std::cout << "Setup : " << duration << " microseconds\n";
+    std::cout << "=> Setup : " << duration << " microseconds\n";
 
 
     Evaluator eval(ctx);
@@ -247,13 +242,29 @@ int main(int argc, char const *argv[])
     mpz_init_set_si(g, 7);
     set_matrix_element(weights, 0, 7, e);
 
-    std::cout << "weights?\n";
     for (int i = 0; i < weights->cols; i++){
       printf("y: %ld\n", mpz_get_si(mat_element(weights, 0, i)));
       //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
     }
 
-    // @ HANNAH this is necessary rn bc this is the function where compression (first half of eval) happens
+    mpz_t sky;
+    mpz_init(sky);
+
+    mpz_t sky_cca_j1;
+    mpz_t sky_cca_j2;
+
+    mpz_init(sky_cca_j1);
+    mpz_init(sky_cca_j2);
+
+    keygen_1.key_der(weights, sky, sky_cca_j1, sky_cca_j2);
+
+    std::cout << "sky cca j1 : " << mpz_get_si(sky_cca_j1) << std::endl;
+    std::cout << "sky cca j1 : " << mpz_get_si(sky_cca_j2) << std::endl;
+
+    //eval.cca_check(cca_ct_xtest, cmt_xtest, weights, sky_cca_j1, sky_cca_j2);
+
+
+
     //mdl.predict(ypredTrans, xtestEnc, cmt_xtest, eval, pk_3);
     Timer timer("Prediction Time");
     Matrix compression = mat_init(xtestEnc->rows, 1);
@@ -263,33 +274,24 @@ int main(int argc, char const *argv[])
     //delete_matrix(compression);
 
 
-    mpz_t sky;
-    mpz_init(sky);
 
-    keygen_1.key_der(sky, weights);
-    std::cout << "SKY MAIN"<< mpz_get_si(sky) <<"\n";
 
     // dest, compression, cmt, &sfk ?, activation= no, start=0, end=-1
     eval.evaluate(ypredTrans2, compression, cmt_xtest, sky);
-    std::cout << "eval\n";
     transpose(ypred, ypredTrans2);
     //mdl.compute_performance_metrics(ypred, ytestPlain);
     //std::cout << "Accuracy : " << mdl.accuracy << std::endl;
-    std::cout << "output?\n";
     for (int i = 0; i < ypred->cols; i++){
-      printf("out: %ld\n", mpz_get_si(mat_element(ypred, 0, i)));
+      printf("Out: %ld\n", mpz_get_si(mat_element(ypred, 0, i)));
       //std::cout << "output : " << mat_element(ypred, 0, i) << std::endl;
     }
 
-
+    std::cout << "\n====== EXITING ENCLAVE =====\n";
     req = serialize_request(EXIT_ENCLAVE, dummy, dummy, dummy, dummy);
     make_request(req);
     sgx_destroy_enclave(global_eid);
-    std::cout << "enclave destroyed\n";
+    std::cout << "=> Enclave Destroyed\n";
 
-
-
-    std::cout << "DONE\n";
 
 
 

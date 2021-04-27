@@ -7,7 +7,10 @@ class Public_Key
 {
     private:
         Matrix data_;
+        Matrix data_cca_j1_;
+        Matrix data_cca_j2_;
         int key_len;
+        bool cca = false;
         Public_Key(Matrix mat) = delete;
         Public_Key(int key_len) = delete;
     public:
@@ -18,6 +21,8 @@ class Public_Key
         void init(int key_len);
         void print();
         const Matrix data() const;
+        const Matrix data_cca_j1() const;
+        const Matrix data_cca_j2() const;
         friend class Keygen;
         friend class Encryptor;
 };
