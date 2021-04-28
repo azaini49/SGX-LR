@@ -29,20 +29,20 @@ make install
 
 # INSTALL NOTES FOR BIG MACHINE
 
-[x] Build (enclave modified) GMP library (https://github.com/intel/sgx-gmp)
+- Build (enclave modified) GMP library (https://github.com/intel/sgx-gmp)
 Note: make check doesn't pass - ostensibly bc of sgx defined types
 
 In this order (Intel_SGX_Installation_Guide_Linux_2.13_Open_Source)
-[x] Build SGX Pre-Reqs
-[x] Build SGX Driver (without ECDSA attestation)
+- Build SGX Pre-Reqs
+- Build SGX Driver (without ECDSA attestation)
 Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars after reinitializing
 
-[x] Build SGX PSW
-[x] Build SGX SDK 
+- Build SGX PSW
+- Build SGX SDK 
 Note: mitigation tools?
 Reference: https://download.01.org/intel-sgx/sgx-linux/2.13/docs/Intel_SGX_Installation_Guide_Linux_2.13_Open_Source.pdf
 
-[x] set appropriate directories in Makefile
+- set appropriate directories in Makefile
 
 
 # RUN
@@ -67,9 +67,24 @@ make
 # DOCUMENTATION
 
 **App**
-launch_enclave()
-- sets up secure SGX enclave
-- returns success/error
+`launch_enclave()`-> sets up secure SGX enclave, returns success/error
+
+`Context`
+
+`Keygen` -> instantiates public and secret key vectors
+`public_key` -> return pk
+`secret_key` -> return sk
+
+`Encryptor`
+`encrypt()` -> Encrypt Matrix of plaintexts
+
+`Evaluator`
+`evaluate()` -> Final decryption
+
+`Logistic_Regression`
+`train()` -> Trains data and updates model weights
+`predict()` -> Performs compression, applies sigmoid within enclave
+`compute_performance_metrics`
 
 
 
