@@ -248,7 +248,7 @@ int main(int argc, char const *argv[])
 
     // Instantiate LR model to train
     Logistic_Regression mdl(ctx, 6, 10.0);
-    mdl.train(xtrainEnc, xtrainTransEnc, ytrainPlain, cmt_xtrain, cmt_xtrain_trans, 256, 0.0004);
+    mdl.train(xtrainEnc, xtrainTransEnc, ytrainPlain, cmt_xtrain, cmt_xtrain_trans, 256, 0.0004, app_sk_2->data());
 
 
     Evaluator eval(ctx);

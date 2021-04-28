@@ -188,7 +188,7 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
  * Currently commitments are not encfypted
  * Supports num_threads = 1
  */
-int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk, int activation, Response res, int start, int end, int mode)
+int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk_update, int activation, Response res, int start, int end, int mode)
 {
     if(dest == NULL || compression == NULL || cmt == NULL)
         return ERROR;
@@ -204,7 +204,7 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
     while(row < end + 1)
     {
         mpz_set(ct0, mat_element(cmt, row, 0));
-        mpz_powm(ct0, ct0, sfk, res->Ns);
+        mpz_powm(ct0, ct0, sfk_update, res->Ns);
         mpz_invert(ct0, ct0, res->Ns);
         mpz_set_si(tmp, 1);
 

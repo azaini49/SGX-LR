@@ -4,9 +4,121 @@
 #include "sgx_urts.h"
 #include "../include/shared.h"
 #include <iostream>
+#include "../tools/secret_key.h"
 
 #define TRAIN 0
 #define PREDICTION 1
+
+
+
+int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk,  mpz_t N, mpz_t Ns, int start, int end)
+{
+    if(dest == NULL || compression == NULL || cmt == NULL)
+        return ERROR;
+    int row = 0;
+    mpz_t ct0;
+    mpz_init(ct0);
+    mpz_t tmp;
+    mpz_init(tmp);
+
+    if(end == -1)
+        end = dest->rows - 1;
+
+    while(row < end + 1)
+    {
+        mpz_set(ct0, mat_element(cmt, row, 0));
+        mpz_powm(ct0, ct0, sfk, Ns);
+        mpz_invert(ct0, ct0, Ns);
+        mpz_set_si(tmp, 1);
+
+        mpz_mul(tmp, mat_element(compression, row, 0), ct0);
+        mpz_mod(tmp, tmp, Ns);
+
+        //get_discrete_log(tmp, res->N);
+        mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
+        mpz_tdiv_q(tmp, tmp, N); // divide compression / ct0^sfk -1  by N
+        mpz_mod(tmp, tmp, Ns); // take mod of prev value
+
+        mpz_set(mat_element(dest, row, 0), tmp);
+        if (row == 0) std::cout << "in UPDATE WEIGHTS " << mpz_get_si(tmp) << "\n";
+
+
+	row = row + 1;
+    }
+    mpz_clear(tmp);
+    mpz_clear(ct0);
+    return COMPLETED;
+}
+
+
+
+/**
+ * Function for updating the weights
+ * input_1 -> training_error
+ * output-> weights
+ */
+int update_weights(Secret_Key sk_2, mpz_t N, mpz_t Ns, Matrix input, Matrix output, Matrix compression, Matrix cmt, int start_idx, int batch_size, int alpha, int learning_rate)
+{
+    // Initialize sfk_update
+    mpz_t sfk_update;
+    mpz_init(sfk_update);
+    struct e_matrix update;
+    struct e_matrix update_trans;
+    setup_matrix(&update, output->cols, output->rows);
+
+    // Compute update to be made
+    int stat = row_inner_product(sfk_update, sk_2.data(), input, -1, 0, 0, start_idx, start_idx + batch_size - 1);
+    if(stat == ERROR)
+    {
+        return ERROR;
+    }
+
+    evaluate_e(&update, compression, cmt, sfk_update, N, Ns, 0, -1);
+
+
+    int col = 0;
+    mpz_t x;
+    mpz_init(x);
+    mpz_t wt;
+    mpz_init(wt);
+
+    try
+    {
+        while(col < output->cols)
+        {
+            mpz_set(wt, mat_element(output, 0, col));
+            mpf_class tmp = ((mpz_get_si(wt)*alpha) + mpz_get_si(mat_element2(update, 0 ,col)))*learning_rate;
+            mpz_set_si(x, 0);
+            if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) > 0)
+            {
+                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) > 0)
+                    mpz_set_si(x, tmp.get_d() + 1);
+                else
+                    mpz_set_si(x, tmp.get_d());
+            }
+            else if(mpf_cmp_si(tmp.get_mpf_t(), 0.0) < 0)
+            {
+                if(mpf_cmp_si(tmp.get_mpf_t(), tmp.get_d()) < 0)
+                    mpz_set_si(x, tmp.get_d() - 1);
+                else
+                    mpz_set_si(x, tmp.get_d());
+            }
+            mpz_add(wt, wt, x);
+            mpz_set(mat_element(output, 0, col), wt);
+            col = col + 1;
+        }
+    }
+    catch(int e)
+    {
+        return ERROR;
+    }
+
+    mpz_clear(x);
+    mpz_clear(wt);
+    mpz_clear(sfk_update);
+    return COMPLETED;
+}
+
 
 /**
  * Constructor for Logistic_Regression
@@ -96,7 +208,7 @@ void Logistic_Regression::enclave_set_sfk()
 /**
  * Train the model in given inputs to obtain model parameters
  */
-void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate)
+void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate, Matrix sk_2_data)
 {
     Timer timer("Training Time");
     // Check input dimensions (ytrain includes an extra col for the commitment)
@@ -160,16 +272,22 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         train_req->start_idx = start_idx;
         train_req->batch_size = batchSize;
         make_request(train_req);
-
+	std::cout << "step " << step << "ypred " << mpz_get_si(mat_element(ypred, 0,0)) << "\n";
         transpose(ypred_trans, ypred);
 
 	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-
+        std::cout << "step " << step << "train err " << mpz_get_si(mat_element(training_error, 0,0)) << "\n";
         // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
         eval.compress(update_compress, xbatch, training_error);
+
+	Secret_Key sk_2;
+	sk_2.set_key(sk_2_data);
+	Matrix weights_temp = mat_init(this->weights->rows, this->weights->cols);
+	update_weights(sk_2, ctx->N, ctx->Ns, training_error, weights_temp, update_compress, cmt_xtrain_trans, start_idx, batchSize, alpha, learning_rate);
+
 
         // Assign values to request and wrapper for updating weights
         Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
@@ -182,6 +300,8 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         start_idx = (start_idx + batchSize) % xtrain_enc->rows;
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;
+     
+        std::cout << "step " << step << "weights " << mpz_get_si(mat_element(this->weights, 0,0)) << "\n";
     }
     enclave_set_sfk();
 
