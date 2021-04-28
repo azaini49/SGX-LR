@@ -221,15 +221,26 @@ void PubKeyEncr::generate_safe_prime(mpz_t p, mpz_t q, int bits) {
     if(numThreads > numCores)
         numThreads = numCores;
 
-    Matrix primeGuessP = mat_init(numThreads / 2, 0);
-    Matrix primeGuessQ = mat_init(numThreads / 2, 0);
-    mpz_t one;
-    mpz_init(one);
-    mpz_set_ui(one, 1);
-    setMatrix(primeGuessP, one);
-    setMatrix(primeGuessQ, one);
-    Matrix isPrimeP = mat_init(numThreads / 2, 0);
-    Matrix isPrimeQ = mat_init(numThreads / 2, 0);
+    Matrix primeGuessP = mat_init(numThreads, 1);
+    Matrix primeGuessQ = mat_init(numThreads, 1);
+    Matrix isPrimeP = mat_init(numThreads, 1);
+    Matrix isPrimeQ = mat_init(numThreads, 1);
+    for (int i = 0; i < numThreads; i++){
+    	mpz_t one;
+    	mpz_init(one);
+    	mpz_set_ui(one, 1);
+    	set_matrix_element(primeGuessP, i, 0, one);
+  
+    }
+
+    for (int i = 0; i < numThreads; i++) {
+        mpz_t one;
+        mpz_init(one);
+        mpz_set_ui(one, 1);
+        set_matrix_element(primeGuessQ, i, 0, one);
+    }
+
+    
     // mpz_t zero;
     // mpz_init(zero);
     // mpz_set_ui(zero, 0);
@@ -238,46 +249,55 @@ void PubKeyEncr::generate_safe_prime(mpz_t p, mpz_t q, int bits) {
 
     std::thread threads[numThreads];
     while (true){
+        std::cout << "Made it to loop " << numThreads << "\n"; 
+        for(int i = 0; i < numThreads; i++)
+        {
+            threads[i] = std::thread(generate_guess_util, bits, std::ref(mat_element(primeGuessP, i, 0)));
+        }
+        for(int i = 0; i < numThreads; i++)
+            threads[i].join();
+        for(int i = 0; i < numThreads; i++)
+        {
+            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeP, i, 0)), std::ref(mat_element(primeGuessP, i, 0)));
+        }
+        for(int i = 0; i < numThreads; i++)
+            threads[i].join();
         
-        for(int i = 0; i < numThreads / 2; i++)
-        {
-            threads[i] = std::thread(generate_guess_util, std::ref(mat_element(primeGuessP, i, 0)));
-        }
-        for(int i = 0; i < numThreads / 2; i++)
-            threads[i].join();
-        for(int i = 0; i < numThreads / 2; i++)
-        {
-            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeP, i, 0)));
-        }
-        for(int i = 0; i < numThreads / 2; i++)
-            threads[i].join();
-        for (int i = 0; i < isPrimeP->rows; i++){
-            if (mpz_cmp_ui(mat_element(isPrimeP, 1, 0), 0) > 0) {
+	bool found = false;
+	for (int i = 0; i < numThreads; i++){
+		std::cout << "Made it to check";
+		
+            if (mpz_cmp_ui(mat_element(isPrimeP, i, 0), 0) > 0) {
                 mpz_set(p, mat_element(primeGuessP, i, 0));
-                break;
-            }
+            	found = true;
+	    }
         }
+
+	if (found) break;
     }
 
     while (true){
-        for(int i = 0; i < numThreads / 2; i++)
+        for(int i = 0; i < numThreads; i++)
         {
-            threads[i] = std::thread(generate_guess_util, std::ref(mat_element(primeGuessQ, i, 0)));
+            threads[i] = std::thread(generate_guess_util, bits,  std::ref(mat_element(primeGuessQ, i, 0)));
         }
-        for(int i = 0; i < numThreads / 2; i++)
+        for(int i = 0; i < numThreads; i++)
             threads[i].join();
-        for(int i = 0; i < numThreads / 2; i++)
+        for(int i = 0; i < numThreads; i++)
         {
-            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeQ, i, 0)));
+            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeQ, i, 0)), std::ref(mat_element(primeGuessQ, i, 0)));
         }
-        for(int i = 0; i < numThreads / 2; i++)
+        for(int i = 0; i < numThreads; i++)
             threads[i].join();
-        for (int i = 0; i < isPrimeQ->rows; i++){
-            if (mpz_cmp_ui(mat_element(isPrimeQ, 1, 0), 0) > 0) {
+        bool found = false;
+	for (int i = 0; i < numThreads; i++){
+		std::cout << "Check 2";	
+            if (mpz_cmp_ui(mat_element(isPrimeQ, i, 0), 0) > 0) {
                 mpz_set(q, mat_element(primeGuessQ, i, 0));
-                break;
+                found = true;
             }
         }
+	if (found) break;
     }
     
 
