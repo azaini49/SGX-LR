@@ -29,16 +29,14 @@ PubKeyEncr::PubKeyEncr(int security_level)
     // N
     mpz_init_set_si(this->p, 1);
     mpz_init_set_si(this->q, 1);
-    generate_safe_prime(security_level, std::ref(this->p));
-    generate_safe_prime(security_level, std::ref(this->q));
+    generate_safe_prime(std::ref(this->p), std::ref(this->q), security_level);
     std::cout << "p and q: " << mpz_get_si(this->p) << " " << mpz_get_si(this->q) << "\n";
     mpz_sub_ui(pMin1, this->p, 1);
     mpz_sub_ui(qMin1, this->q, 1);
     mpz_mul(this->N, this->p, this->q);
-    mpz_mul(this->lambda, pMin1, qMin1); //may need to change sub to mpz_sub_ui
+    mpz_mul(this->lambda, pMin1, qMin1);
     mpz_invert(this->mu, this->lambda, this->N);
-     //col = col + numThreads;
-    //}
+    
     
 
 	// Create random state to use as seed
@@ -51,47 +49,6 @@ PubKeyEncr::PubKeyEncr(int security_level)
 
     mpz_init_set(this->g, this->N);
     mpz_add_ui(this->g, this->g, 1);
-    
-    /* int star = 0;
-    while(!star){
-        mpz_t N2;
-        mpz_init(N2);
-        mpz_mul(N2, this->N, this->N);
-        mpz_urandomm(this->g, state, N2);
-
-      star = 1;
-
-      
-      if (mpz_cmp_si(this->g,0) <= 0 || mpz_cmp(this->g, Ndiv2) <= 0){
-        star = 0;
-      } else {
-          mpz_t gcd;
-          mpz_init(gcd);
-          mpz_gcd(gcd, this->g, this->N);
-          if (mpz_cmp_si(gcd,1) != 0){
-            star = 0;
-          }
-          mpz_t val;
-          mpz_init(val);
-          
-          mpz_powm(val, this->g, this->lambda, N2);
-          mpz_sub_ui(val, val, 1);
-          mpz_tdiv_q(val, val, this->N);
-          
-          mpz_gcd(gcd, val, this->N);
-          if (mpz_cmp_si(gcd,1) != 0){
-            star = 0;
-          }
-
-          mpz_clear(gcd);
-          mpz_clear(val);
-          
-      }
-      mpz_clear(N2);
-        
-    } */
-
-
 
     mpz_clear(pMin1);
     mpz_clear(qMin1);
@@ -134,7 +91,6 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext
 
        // mpz_set_si(nonce, 3); // TEMP
 
-
         for(int col = 0; col < plaintext->cols; col++)
         {
             if (mpz_cmp(mat_element(plaintext, row, col), pke->N) >= 0) {
@@ -167,8 +123,6 @@ void PubKeyEncr::encrypt(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext, Mat
     // Create random state to use as seed
     gmp_randstate_t state;
     gmp_randinit_mt(state);
-
-    //encrypt_util(pke, std::ref(ciphertext), std::ref(plaintext), state, 0, 1);
 
     // Define threadpool
     int numThreads = plaintext->rows;
@@ -204,10 +158,6 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext,
 
     while(row < plaintext->rows)
     {
-        // DeCRYPT
-      //  mpz_set_si(nonce, 4); // TEMP
-
-
         
         for(int col = 0; col < plaintext->cols; col++)
         {
@@ -217,18 +167,6 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext,
         mpz_tdiv_q(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), pke->N);
         mpz_mul(mat_element(plaintext, row, col), mat_element(ciphertext, row, col), pke->mu);
         mpz_mod(mat_element(plaintext, row, col), mat_element(plaintext, row, col), pke->N);
-
-        /* (ciphertext, ciphertext, 1);
-        
-	    mpz_powm(tmp, pke->g, pke->lambda, N2);
-	    std::cout << "Tmp init: " << mpz_get_si(tmp) << "\n";
-        mpz_sub_ui(tmp, tmp, 1);
-	    std::cout << "Tmp after sub by 1: " << mpz_get_si(tmp) << "\n";
-         mpz_tdiv_q(tmp, tmp, pke->N);
-	    std::cout << "N: " << mpz_get_si(pke->N) << "\n";
-	    std::cout << "Tmp after div by N:" << mpz_get_si(tmp) << "\n"; 
-	    mpz_tdiv_q(ciphertext, ciphertext, tmp);
-	    mpz_mod(plaintext, ciphertext, pke->N); */
 
         }
         row = row + numThreads;
@@ -245,11 +183,6 @@ void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext, Matr
 {
     if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
        throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
-
-
-    // Create random state to use as seed
-
-    //decrypt_util(pke, std::ref(plaintext), std::ref(ciphertext),  0, 1);
 
     // Define threadpool
     int numThreads = plaintext->rows;
@@ -282,38 +215,102 @@ void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext, Matr
 //    return this->pk;
 //}
 
-void PubKeyEncr::generate_safe_prime(int bits, mpz_t prime)
+void PubKeyEncr::generate_safe_prime(mpz_t p, mpz_t q, int bits) {
+    int numThreads = 10;
+    int numCores = std::thread::hardware_concurrency();
+    if(numThreads > numCores)
+        numThreads = numCores;
+
+    Matrix primeGuessP = mat_init(numThreads / 2, 0);
+    Matrix primeGuessQ = mat_init(numThreads / 2, 0);
+    mpz_t one;
+    mpz_init(one);
+    mpz_set_ui(one, 1);
+    setMatrix(primeGuessP, one);
+    setMatrix(primeGuessQ, one);
+    Matrix isPrimeP = mat_init(numThreads / 2, 0);
+    Matrix isPrimeQ = mat_init(numThreads / 2, 0);
+    // mpz_t zero;
+    // mpz_init(zero);
+    // mpz_set_ui(zero, 0);
+    // setMatrix(isPrimeP, zero);
+    // setMatrix(primeGuessQ, zero);
+
+    std::thread threads[numThreads];
+    while (true){
+        
+        for(int i = 0; i < numThreads / 2; i++)
+        {
+            threads[i] = std::thread(generate_guess_util, std::ref(mat_element(primeGuessP, i, 0)));
+        }
+        for(int i = 0; i < numThreads / 2; i++)
+            threads[i].join();
+        for(int i = 0; i < numThreads / 2; i++)
+        {
+            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeP, i, 0)));
+        }
+        for(int i = 0; i < numThreads / 2; i++)
+            threads[i].join();
+        for (int i = 0; i < isPrimeP->rows; i++){
+            if (mpz_cmp_ui(mat_element(isPrimeP, 1, 0), 0) > 0) {
+                mpz_set(p, mat_element(primeGuessP, i, 0));
+                break;
+            }
+        }
+    }
+
+    while (true){
+        for(int i = 0; i < numThreads / 2; i++)
+        {
+            threads[i] = std::thread(generate_guess_util, std::ref(mat_element(primeGuessQ, i, 0)));
+        }
+        for(int i = 0; i < numThreads / 2; i++)
+            threads[i].join();
+        for(int i = 0; i < numThreads / 2; i++)
+        {
+            threads[i] = std::thread(check_prime_util, std::ref(mat_element(isPrimeQ, i, 0)));
+        }
+        for(int i = 0; i < numThreads / 2; i++)
+            threads[i].join();
+        for (int i = 0; i < isPrimeQ->rows; i++){
+            if (mpz_cmp_ui(mat_element(isPrimeQ, 1, 0), 0) > 0) {
+                mpz_set(q, mat_element(primeGuessQ, i, 0));
+                break;
+            }
+        }
+    }
+    
+
+    
+    
+}
+
+void PubKeyEncr::generate_guess_util(int bits, mpz_t prime)
 {
+
     mpz_t num;
     mpz_init(num);
     gmp_randstate_t state;
     gmp_randinit_mt(state);
     gmp_randseed_ui(state, time(0)); 
     mpz_urandomb(num, state, bits);
-    std::cout << "Random: " << mpz_get_si(num) << "\n";
+
     mpz_t security;
     mpz_init(security);
     int val = (1 << (bits -1)) | 1;
     mpz_set_ui(security,val);
     mpz_ior(num, num, security);
-    std::cout << "Random num: " << mpz_get_si(num) << "\n";
+
     mpz_t q;
     mpz_init(q);
-
-int count = 0;
-    while(true)
-    {
-	count++;
-        mpz_nextprime(q, num);
-        mpz_addmul_ui(prime, q, 2);
-
-        if(mpz_probab_prime_p(prime, 12) > 0)
-            break;
-        mpz_set_ui(prime, 1);
-        mpz_set(num, q);
-    }
-    std::cout << "num tries to generate prime: " << count << "\n";
+    mpz_nextprime(q, num);
+    mpz_addmul_ui(prime, q, 2);
     mpz_clear(q);
     mpz_clear(num);
     gmp_randclear(state);
+}
+
+void PubKeyEncr::check_prime_util(mpz_t is_prime, mpz_t prime)
+{
+    mpz_set_si(is_prime, mpz_probab_prime_p(prime, 12));
 }
