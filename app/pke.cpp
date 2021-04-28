@@ -27,8 +27,8 @@ PubKeyEncr::PubKeyEncr(int security_level)
     
 
     // N
-    mpz_init_set_si(this->p, 1); //1);
-    mpz_init_set_si(this->q, 1);//1);
+    mpz_init_set_si(this->p, 1);
+    mpz_init_set_si(this->q, 1);
     generate_safe_prime(security_level, std::ref(this->p));
     generate_safe_prime(security_level, std::ref(this->q));
     std::cout << "p and q: " << mpz_get_si(this->p) << " " << mpz_get_si(this->q) << "\n";
@@ -132,7 +132,7 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext
         mpz_urandomm(nonce, state, pke->N);
         mpz_add_ui(nonce, nonce, 2);
 
-        //mpz_set_si(nonce, 3); // TEMP
+       // mpz_set_si(nonce, 3); // TEMP
 
 
         for(int col = 0; col < plaintext->cols; col++)
@@ -179,7 +179,7 @@ void PubKeyEncr::encrypt(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext, Mat
     std::thread threads[numThreads];
     for(int i = 0; i < numThreads; i++)
     {
-        threads[i] = std::thread(encrypt_util, std::ref(pke), std::ref(ciphertext), std::ref(plaintext), state, i, numThreads);
+        threads[i] = std::thread(encrypt_util, std::ref(pke), std::ref(ciphertext), std::ref(plaintext), std::ref(state), i, numThreads);
     }
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
@@ -260,7 +260,7 @@ void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext, Matr
     std::thread threads[numThreads];
     for(int i = 0; i < numThreads; i++)
     {
-        threads[i] = std::thread(encrypt_util, std::ref(pke), std::ref(ciphertext), std::ref(plaintext), i, numThreads);
+        threads[i] = std::thread(decrypt_util, std::ref(pke), std::ref(plaintext), std::ref(ciphertext), i, numThreads);
     }
     for(int i = 0; i < numThreads; i++)
         threads[i].join();
