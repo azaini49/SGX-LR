@@ -52,4 +52,5 @@ mpz_t sfk;
 void printf_enclave(const char *fmt, ...);
 void print_matrix_e(const Matrix mat);
 void print_ematrix_e(const E_Matrix mat);
+void get_sfk(mpz_t s);
 void print_mpz(mpz_t m);

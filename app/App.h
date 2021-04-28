@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sgx_eid.h>
+
 #define HAVE_SGX 1
 
 extern sgx_enclave_id_t global_eid;

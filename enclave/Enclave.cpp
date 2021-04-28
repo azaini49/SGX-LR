@@ -5,6 +5,8 @@
 #include "../include/Queue.h"
 #include <inttypes.h>
 #include <map>
+#include <iostream>
+#include <cstdio>
 
 #ifndef SUCCESS
 #define SUCCESS 1
@@ -21,6 +23,7 @@ Secret_Key sk_1;
 Secret_Key sk_2;
 
 static std::map<mpz_class, mpz_class> lookup;
+
 
 // Compute the sigmoid and round to nearest integer
 int sigmoid(mpz_t res, double x)
@@ -99,13 +102,13 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
     mpz_init(nonce);
 
     mpz_t tmp2;
-    mpz_init2(tmp2, SECURITY_BITS);
+    mpz_init(tmp2);
 
     mpz_t tmp3;
-    mpz_init2(tmp3, SECURITY_BITS);
+    mpz_init(tmp3);
 
     mpz_t tmp4;
-    mpz_init2(tmp4, SECURITY_BITS);
+    mpz_init(tmp4);
 
     mpz_t nd4;
     mpz_init(nd4);
@@ -128,8 +131,9 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
         mpz_set_si(tmp, 1);
 
         mpz_mul(tmp, mat_element(res->compression, row, 0), ct0);
-        mpz_mod(tmp, tmp, res->Ns);
-        //get_discrete_log(tmp, res->N);
+	
+	mpz_mod(tmp, tmp, res->Ns);
+	//get_discrete_log(tmp, res->N);
         mpz_sub_ui(tmp, tmp, 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(tmp, tmp, res->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(tmp, tmp, res->Ns); // take mod of prev value
@@ -162,17 +166,18 @@ int evaluate(const mpz_t sfk, int activation, Response res, int start, int end, 
 	    mpz_set(mat_element(res->output, row, 0), tmp3);
 
         }
-        else
+        else {
             mpz_set(mat_element(res->output, row, 0), tmp);
-        row = row + 1;
+	}
+	row = row + 1;
     }
-    /*
+/*   
     mpz_clear(tmp);
     mpz_clear(tmp2);
     mpz_clear(tmp3);
     mpz_clear(nonce);
     mpz_clear(ct0);
-    */
+*/    
     return COMPLETED;
 }
 
