@@ -108,13 +108,11 @@ std::shared_ptr<PubKeyEncr> PubKeyEncr::Create(int security_level)
 
 
 // Utility function to encrypt data
-void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext, mpz_t plaintext, gmp_randstate_t state, int tid, int numThreads)
+void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext, Matrix plaintext, gmp_randstate_t state, int tid, int numThreads)
 {
-    //int row = tid;
+    int row = tid;
 
-    if (mpz_cmp(plaintext, pke->N) >= 0) {
-        throw std::invalid_argument("Plaintext dimensions too large!");
-    }
+    
 
     // Generate random nonce - let nonce equal the value r in scheme
     mpz_t nonce;
@@ -128,27 +126,29 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext,
     mpz_init(N2);
     mpz_mul(N2, pke->N, pke->N);
 
-    //while(row < plaintext->rows)
-    //{
+    while(row < plaintext->rows)
+    {
         // ENCRYPT
-        //mpz_urandomm(nonce, state, pke->N);
-        //mpz_add_ui(nonce, nonce, 2);
+        mpz_urandomm(nonce, state, pke->N);
+        mpz_add_ui(nonce, nonce, 2);
 
-        mpz_set_si(nonce, 3); // TEMP
+        //mpz_set_si(nonce, 3); // TEMP
 
 
-        // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
-        //for(int col = 0; col < plaintext->cols; col++)
-        //{
-            mpz_powm(ciphertext, pke->g, plaintext, N2);
-	    std::cout << "raw ciphertext: " << mpz_get_si(ciphertext) << "\n";
-	    mpz_powm(tmp, nonce, pke->N, N2);
-	    std::cout << "randomness: " << mpz_get_si(tmp) << "\n";
-            mpz_mul(ciphertext, ciphertext, tmp);
-            mpz_mod(ciphertext, ciphertext, N2);
-        //}
-        //row = row + numThreads;
-   //}
+        for(int col = 0; col < plaintext->cols; col++)
+        {
+            if (mpz_cmp(mat_element(plaintext, row, col), pke->N) >= 0) {
+                throw std::invalid_argument("Plaintext dimensions too large!");
+            }   
+            mpz_powm(mat_element(ciphertext, row, col), pke->g, mat_element(plaintext, row, col), N2);
+	        std::cout << "raw ciphertext: " << mpz_get_si(mat_element(ciphertext, row, col)) << "\n";
+	        mpz_powm(tmp, nonce, pke->N, N2);
+	        std::cout << "randomness: " << mpz_get_si(tmp) << "\n";
+            mpz_mul(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), tmp);
+            mpz_mod(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), N2);
+        }
+        row = row + numThreads;
+   }
     mpz_clear(nonce);
     mpz_clear(tmp);
     mpz_clear(N2);
@@ -159,71 +159,64 @@ void PubKeyEncr::encrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t ciphertext,
  * @params : plaintext integer
  * @return : ciphertext
  */
-void PubKeyEncr::encrypt(std::shared_ptr<PubKeyEncr> pke,mpz_t ciphertext, mpz_t plaintext)
+void PubKeyEncr::encrypt(std::shared_ptr<PubKeyEncr> pke, Matrix ciphertext, Matrix plaintext)
 {
-    //if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
-    //    throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
-    //if(commitment->rows != plaintext->rows || commitment->cols != 1)
-    //    throw std::invalid_argument("Invalid dimensions for commitment matrix");
+    if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
+        throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
 
     // Create random state to use as seed
     gmp_randstate_t state;
     gmp_randinit_mt(state);
 
-    encrypt_util(pke, std::ref(ciphertext), std::ref(plaintext), state, 0, 1);
+    //encrypt_util(pke, std::ref(ciphertext), std::ref(plaintext), state, 0, 1);
 
     // Define threadpool
-    //int numThreads = plaintext->rows;
-    //int numCores = std::thread::hardware_concurrency();
-    //if(numThreads > numCores)
-    //    numThreads = numCores;
+    int numThreads = plaintext->rows;
+    int numCores = std::thread::hardware_concurrency();
+    if(numThreads > numCores)
+        numThreads = numCores;
 
-    //std::thread threads[numThreads];
-    //for(int i = 0; i < numThreads; i++)
-    //{
-    //    threads[i] = std::thread(encrypt_util, std::ref(*this), std::ref(ciphertext), std::ref(commitment), std::ref(plaintext), state, i, numThreads);
-    //}
-    //for(int i = 0; i < numThreads; i++)
-    //    threads[i].join();
+    std::thread threads[numThreads];
+    for(int i = 0; i < numThreads; i++)
+    {
+        threads[i] = std::thread(encrypt_util, std::ref(pke), std::ref(ciphertext), std::ref(plaintext), state, i, numThreads);
+    }
+    for(int i = 0; i < numThreads; i++)
+        threads[i].join();
 
 
 }
 
 
 // Utility function to decrypt data
-void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, mpz_t ciphertext, int tid, int numThreads)
+void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext, Matrix ciphertext, int tid, int numThreads)
 {
-    //int row = tid;
+    int row = tid;
 
     mpz_t N2;
     mpz_init(N2);
     mpz_mul(N2, pke->N, pke->N);
-    if (mpz_cmp(ciphertext, N2) >= 0) {
-        throw std::invalid_argument("Ciphertext dimensions too large!");
-    }
-
-
-
+    
     // Store intermediate values
     mpz_t tmp;
     mpz_init(tmp);
 
 
-    //while(row < plaintext->rows)
-    //{
-        // ENCRYPT
+    while(row < plaintext->rows)
+    {
+        // DeCRYPT
       //  mpz_set_si(nonce, 4); // TEMP
 
 
-        // compute cti as (1 + N)^xi times pki^r in group G (assuming p is the modulus for group G)
-        //for(int col = 0; col < plaintext->cols; col++)
-        //{
+        
+        for(int col = 0; col < plaintext->cols; col++)
+        {
 	
     	
-        mpz_powm(ciphertext, ciphertext, pke->lambda, N2);
-        mpz_tdiv_q(ciphertext, ciphertext, pke->N);
-        mpz_mul(plaintext, ciphertext, pke->mu);
-        mpz_mod(plaintext, plaintext, pke->N);
+        mpz_powm(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), pke->lambda, N2);
+        mpz_tdiv_q(mat_element(ciphertext, row, col), mat_element(ciphertext, row, col), pke->N);
+        mpz_mul(mat_element(plaintext, row, col), mat_element(ciphertext, row, col), pke->mu);
+        mpz_mod(mat_element(plaintext, row, col), mat_element(plaintext, row, col), pke->N);
 
         /* (ciphertext, ciphertext, 1);
         
@@ -237,9 +230,9 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
 	    mpz_tdiv_q(ciphertext, ciphertext, tmp);
 	    mpz_mod(plaintext, ciphertext, pke->N); */
 
-        //}
-        //row = row + numThreads;
-   //}
+        }
+        row = row + numThreads;
+   }
     mpz_clear(tmp);
     mpz_clear(N2);
 }
@@ -248,30 +241,29 @@ void PubKeyEncr::decrypt_util(std::shared_ptr<PubKeyEncr> pke, mpz_t plaintext, 
  * @params : plaintext integer
  * @return : ciphertext
  */
-void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke,  mpz_t plaintext, mpz_t ciphertext)
+void PubKeyEncr::decrypt(std::shared_ptr<PubKeyEncr> pke, Matrix plaintext, Matrix ciphertext)
 {
-    //if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
-    //    throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
-    //if(commitment->rows != plaintext->rows || commitment->cols != 1)
-    //    throw std::invalid_argument("Invalid dimensions for commitment matrix");
+    if(ciphertext->rows != plaintext->rows || ciphertext->cols != plaintext->cols)
+       throw std::invalid_argument("Ciphertext and plaintext dimentions do not match!");
+
 
     // Create random state to use as seed
 
-    decrypt_util(pke, std::ref(plaintext), std::ref(ciphertext),  0, 1);
+    //decrypt_util(pke, std::ref(plaintext), std::ref(ciphertext),  0, 1);
 
     // Define threadpool
-    //int numThreads = plaintext->rows;
-    //int numCores = std::thread::hardware_concurrency();
-    //if(numThreads > numCores)
-    //    numThreads = numCores;
+    int numThreads = plaintext->rows;
+    int numCores = std::thread::hardware_concurrency();
+    if(numThreads > numCores)
+        numThreads = numCores;
 
-    //std::thread threads[numThreads];
-    //for(int i = 0; i < numThreads; i++)
-    //{
-    //    threads[i] = std::thread(encrypt_util, std::ref(*this), std::ref(ciphertext), std::ref(commitment), std::ref(plaintext), state, i, numThreads);
-    //}
-    //for(int i = 0; i < numThreads; i++)
-    //    threads[i].join();
+    std::thread threads[numThreads];
+    for(int i = 0; i < numThreads; i++)
+    {
+        threads[i] = std::thread(encrypt_util, std::ref(pke), std::ref(ciphertext), std::ref(plaintext), i, numThreads);
+    }
+    for(int i = 0; i < numThreads; i++)
+        threads[i].join();
 
 
 }
