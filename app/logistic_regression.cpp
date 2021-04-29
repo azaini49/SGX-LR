@@ -10,7 +10,6 @@
 #define PREDICTION 1
 
 
-
 int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk,  mpz_t N, mpz_t Ns, int start, int end)
 {
     if(dest == NULL || compression == NULL || cmt == NULL)
@@ -68,6 +67,7 @@ int update_weights(Secret_Key sk_2, mpz_t N, mpz_t Ns, Matrix input, Matrix outp
 
     // Compute update to be made
     int stat = row_inner_product(sfk_update, sk_2.data(), input, -1, 0, 0, start_idx, start_idx + batch_size - 1);
+    std::cout << "stat ip " << stat << "\n";
     if(stat == ERROR)
     {
         return ERROR;
@@ -273,22 +273,25 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         train_req->batch_size = batchSize;
         make_request(train_req);
 	std::cout << "step " << step << "ypred " << mpz_get_si(mat_element(ypred, 0,0)) << "\n";
-        transpose(ypred_trans, ypred);
+       
+       	transpose(ypred_trans, ypred);
 
 	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-        std::cout << "step " << step << "train err " << mpz_get_si(mat_element(training_error, 0,0)) << "\n";
-        // Get the xbatch_trans matrix
+        for (int i = 0; i < training_error->cols; i++){
+	   std::cout << "step " << step << "train err " << mpz_get_si(mat_element(training_error, 0,i)) << "\n";
+	}
+	   
+	   // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
-
-        eval.compress(update_compress, xbatch, training_error);
-
+        
+	eval.compress(update_compress, xbatch, training_error);
+/*
 	Secret_Key sk_2;
 	sk_2.set_key(sk_2_data);
 	Matrix weights_temp = mat_init(this->weights->rows, this->weights->cols);
 	update_weights(sk_2, ctx->N, ctx->Ns, training_error, weights_temp, update_compress, cmt_xtrain_trans, start_idx, batchSize, alpha, learning_rate);
-
-
+*/
         // Assign values to request and wrapper for updating weights
         Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
         update_weights_req->start_idx = start_idx;

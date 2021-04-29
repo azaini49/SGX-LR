@@ -243,7 +243,7 @@ int update_weights(Response res)
     setup_matrix(&update, res->output->cols, res->output->rows);
 
     // Compute update to be made
-    int stat = row_inner_product(sfk_update, sk_2.data(), res->input, -1, 0, 0, res->start_idx, res->start_idx + res->batch_size - 1);
+    int stat = row_inner_product(sfk_update, sk_2.data(), res->input, 0, 0, res->start_idx, res->start_idx + res->batch_size - 1);
     if(stat == ERROR)
     {
         printf_enclave("error\n");

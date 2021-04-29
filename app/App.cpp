@@ -320,19 +320,21 @@ int main(int argc, char const *argv[])
 */   
   
     transpose(ypred, ypredTrans);
+    /*
     for (int i = 0; i < ypred->cols; i++){
       printf("y: %ld\n", mpz_get_si(mat_element(ypred, 0, i)));
     }
-    
+    */
     
     mdl.compute_performance_metrics(ypred, ytestPlain);
     std::cout << " " << std::endl;
     std::cout << "======== PERFORMANCE =======" << std::endl;
+
     std::cout << "Accuracy : " << mdl.accuracy << std::endl;
     std::cout << "Precision : " << mdl.precision << std::endl;
     std::cout << "Recall : " << mdl.recall << std::endl;
     std::cout << "F1 : " << mdl.f1 << std::endl;
-    std::cout << "tn : " << mdl.tn << " tp : " << mdl.tp << " fn : " << mdl.fn << " fp : " << mdl.fp << std::endl;
+    std::cout << mdl.tn << " tp : " << mdl.tp << " fn : " << mdl.fn << " fp : " << mdl.fp << std::endl;
 
     std::cout << " " << std::endl;
 
