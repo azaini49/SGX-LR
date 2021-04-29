@@ -66,25 +66,40 @@ make
 
 # DOCUMENTATION
 
-**App**
+**App.h**
 `launch_enclave()`-> sets up secure SGX enclave, returns success/error
 
-`Context`
+**Context.h**
 
-`Keygen` -> instantiates public and secret key vectors
-`public_key` -> return pk
-`secret_key` -> return sk
+**Keygen.h**
 
-`Encryptor`
-`encrypt()` -> Encrypt Matrix of plaintexts
+-> instantiates public and secret key vectors
 
-`Evaluator`
+`public_key` -> Return pk
+
+`secret_key` -> Return sk
+
+**Encryptor.h**
+
+`encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext)` -> Encrypt Matrix of plaintexts, sets ciphertext Matrix and commitment Matrix
+
+**Evaluator.h**
+
+
+void 
+        void evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk, int activation = NO_ACTIVATION, int start = 0, int end = -1);
+
+`compress(Matrix compression, const Matrix ciphertext, const Matrix inp);` -> First part of decryption, sets compression Matrix
+
 `evaluate()` -> Final decryption
 
-`Logistic_Regression`
+**Logistic_Regression.h**
+
 `train()` -> Trains data and updates model weights
-`predict()` -> Performs compression, applies sigmoid within enclave
-`compute_performance_metrics`
+
+`predict()` -> Performs compression, applies sigmoid within enclave to create classification tag
+
+`compute_performance_metrics()` -> analyze output of ML model
 
 
 
