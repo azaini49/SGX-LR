@@ -67,17 +67,20 @@ make
 # DOCUMENTATION
 
 **App.h**
+
 `launch_enclave()`-> sets up secure SGX enclave, returns success/error
 
 **Context.h**
 
+Constructor -> instantiates N and g
+
 **Keygen.h**
 
--> instantiates public and secret key vectors
+Constructor -> instantiates public and secret key vectors
 
-`public_key` -> Return pk
+`public_key()` -> Return pk
 
-`secret_key` -> Return sk
+`secret_key()` -> Return sk
 
 **Encryptor.h**
 
@@ -85,23 +88,17 @@ make
 
 **Evaluator.h**
 
+`compress(Matrix compression, const Matrix ciphertext, const Matrix inp)` -> First part of decryption, sets compression Matrix
 
-void 
-        void evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk, int activation = NO_ACTIVATION, int start = 0, int end = -1);
-
-`compress(Matrix compression, const Matrix ciphertext, const Matrix inp);` -> First part of decryption, sets compression Matrix
-
-`evaluate()` -> Final decryption
+`evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk)` -> Second part of decryption, sets destination Matrix
 
 **Logistic_Regression.h**
 
-`train()` -> Trains data and updates model weights
+`train(train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate, Matrix sk_2_data)` -> Trains data and updates model weights
 
-`predict()` -> Performs compression, applies sigmoid within enclave to create classification tag
+`predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval, Public_Key pk)` -> Performs compression, applies sigmoid within enclave to create classification tag, sets ypred Matrix
 
-`compute_performance_metrics()` -> analyze output of ML model
-
-
+`compute_performance_metrics(const Matrix ypred, const Matrix ytrue)` -> analyze output of ML model
 
 
 
