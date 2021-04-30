@@ -94,7 +94,7 @@ Constructor -> instantiates public and secret key vectors
 
 **Logistic_Regression.h**
 
-`train(train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate, Matrix sk_2_data)` -> Trains data and updates model weights
+`train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matrix ytrain, Matrix cmt_xtrain, Matrix cmt_xtrain_trans, int batchSize, float learning_rate, Matrix sk_2_data)` -> Trains data and updates model weights
 
 `predict(Matrix ypred, Matrix xtest_enc, Matrix cmt, Evaluator &eval, Public_Key pk)` -> Performs compression, applies sigmoid within enclave to create classification tag, sets ypred Matrix
 
