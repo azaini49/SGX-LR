@@ -33,8 +33,8 @@ Context::Context(int security_level, int Mx, int My)
     // N
     mpz_t p;
     mpz_t q;
-    mpz_init_set_si(p, 1); //4079);
-    mpz_init_set_si(q, 1); //179);
+    mpz_init_set_si(p, 1);//4079);
+    mpz_init_set_si(q, 1);//179);
     generate_safe_prime(security_level, std::ref(p));
     generate_safe_prime(security_level, std::ref(q));
 

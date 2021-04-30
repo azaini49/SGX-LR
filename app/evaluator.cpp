@@ -95,8 +95,6 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
 
     while(row < end + 1)
     {
-        std::cout << "compressed vector for thread " << tid << ": "<< mpz_get_si(mat_element(compression, row, 0)) <<"\n";
-        std::cout << "sky " << mpz_get_si(sfk) << "\n";
 
         mpz_set(ct0, mat_element(cmt, row, 0));
         mpz_powm(ct0, ct0, sfk, eval.ctx->Ns); // take ct0^sfk
@@ -106,13 +104,11 @@ void Evaluator::evaluate_util_IP(Evaluator &eval, Matrix dest, const Matrix comp
         mpz_mul(mat_element(dest, row, 0), mat_element(compression, row, 0), ct0); // find compression / ct0^sfk
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
 
-	 std::cout << "real pre DL " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
         // get DL
         mpz_sub_ui(mat_element(dest, row, 0), mat_element(dest, row, 0), 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->N); // divide compression / ct0^sfk -1  by N
         mpz_mod(mat_element(dest, row, 0), mat_element(dest, row, 0), eval.ctx->Ns); // take mod of prev value
 
-	std::cout << "real post DL " << mpz_get_si(mat_element(dest, row, 0)) << "\n";
 
         /*mpz_sub_ui(check, check, 1); // subtract 1 from compression / ct0^sfk
         mpz_tdiv_q(check, check, eval.ctx->N); // divide compression / ct0^sfk -1  by N
@@ -194,6 +190,7 @@ void Evaluator::cca_check_util_IP(Evaluator &eval, const Matrix b, const Matrix 
 
         if (mpz_cmp(left,right) != 0)
         {
+          printf("CCA Check does not pass!");
           throw std::invalid_argument("CCA Check does not pass!");
         }
 

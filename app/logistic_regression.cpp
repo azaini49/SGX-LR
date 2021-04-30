@@ -259,13 +259,22 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
     for(int step = 0; step < this->iterations; step++)
     {
         //std::cout << "################################### Iteration : " << step << std::endl;
+        //make_zero(update_compress);
+	//make_zero(weights_temp);
+
 
         // Obtain the batch to train over
         mat_splice(xtrain_batch, xtrain_enc, start_idx, start_idx + batchSize - 1, 0, xtrain_enc->cols - 1);
         mat_splice(xtrain_batch_cmt, cmt_xtrain, start_idx, start_idx + batchSize - 1, 0, cmt_xtrain->cols - 1);
 
+	std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,0)) << "\n";
+        std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,1)) << "\n";
+
         // Compress the batch input
         eval.compress(compression, xtrain_batch, this->weights);
+
+	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,0)) << "\n";
+	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,1)) << "\n";
 
         // Assign values to request object
         train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
@@ -282,6 +291,9 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
         eval.compress(update_compress, xbatch, training_error);
+        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,0)) << "\n";
+        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,1)) << "\n";
+
 
 	Secret_Key sk_2;
 	sk_2.set_key(sk_2_data);
