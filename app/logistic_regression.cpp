@@ -10,7 +10,7 @@
 #define PREDICTION 1
 
 
-
+/*
 int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t sfk,  mpz_t N, mpz_t Ns, int start, int end)
 {
     if(dest == NULL || compression == NULL || cmt == NULL)
@@ -50,14 +50,14 @@ int evaluate_e(E_Matrix dest, const Matrix compression, const Matrix cmt, const 
     return COMPLETED;
 }
 
-
+*/
 
 /**
  * Function for updating the weights
  * input_1 -> training_error
  * output-> weights
  */
-int update_weights(Secret_Key sk_2, mpz_t N, mpz_t Ns, Matrix input, Matrix output, Matrix compression, Matrix cmt, int start_idx, int batch_size, int alpha, int learning_rate)
+/*int update_weights(Secret_Key sk_2, mpz_t N, mpz_t Ns, Matrix input, Matrix output, Matrix compression, Matrix cmt, int start_idx, int batch_size, int alpha, int learning_rate)
 {
     // Initialize sfk_update
     mpz_t sfk_update;
@@ -119,7 +119,7 @@ int update_weights(Secret_Key sk_2, mpz_t N, mpz_t Ns, Matrix input, Matrix outp
     return COMPLETED;
 }
 
-
+*/
 /**
  * Constructor for Logistic_Regression
  * @params : context, number of training iteration, regularization constant
@@ -267,39 +267,39 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         mat_splice(xtrain_batch, xtrain_enc, start_idx, start_idx + batchSize - 1, 0, xtrain_enc->cols - 1);
         mat_splice(xtrain_batch_cmt, cmt_xtrain, start_idx, start_idx + batchSize - 1, 0, cmt_xtrain->cols - 1);
 
-	std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,0)) << "\n";
-        std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,1)) << "\n";
+//	std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,0)) << "\n";
+//        std::cout << "enc x " << mpz_get_si(mat_element(xtrain_batch, 0,1)) << "\n";
 
         // Compress the batch input
         eval.compress(compression, xtrain_batch, this->weights);
 
-	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,0)) << "\n";
-	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,1)) << "\n";
+//	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,0)) << "\n";
+//	std::cout << "compression " << mpz_get_si(mat_element(compression, 0,1)) << "\n";
 
         // Assign values to request object
         train_req = serialize_request(TRAIN_PREDICTION, this->weights, ypred, compression, xtrain_batch_cmt, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
         train_req->start_idx = start_idx;
         train_req->batch_size = batchSize;
         make_request(train_req);
-	std::cout << "step " << step << "ypred " << mpz_get_si(mat_element(ypred, 0,0)) << "\n";
+//	std::cout << "step " << step << "ypred " << mpz_get_si(mat_element(ypred, 0,0)) << "\n";
         transpose(ypred_trans, ypred);
 
 	    // Compute training error
         compute_vector_difference(training_error, ytrain, ypred_trans, 0, start_idx, start_idx + batchSize - 1);
-        std::cout << "step " << step << "train err " << mpz_get_si(mat_element(training_error, 0,0)) << "\n";
+ //       std::cout << "step " << step << "train err " << mpz_get_si(mat_element(training_error, 0,0)) << "\n";
         // Get the xbatch_trans matrix
         mat_splice(xbatch, xtrain_trans_enc, 0, xtrain_trans_enc->rows - 1, start_idx, start_idx + batchSize - 1);
 
         eval.compress(update_compress, xbatch, training_error);
-        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,0)) << "\n";
-        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,1)) << "\n";
+//        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,0)) << "\n";
+//        std::cout << "u compression " << mpz_get_si(mat_element(update_compress, 0,1)) << "\n";
 
-
+/*
 	Secret_Key sk_2;
 	sk_2.set_key(sk_2_data);
 	Matrix weights_temp = mat_init(this->weights->rows, this->weights->cols);
 	update_weights(sk_2, ctx->N, ctx->Ns, training_error, weights_temp, update_compress, cmt_xtrain_trans, start_idx, batchSize, alpha, learning_rate);
-
+*/
 
         // Assign values to request and wrapper for updating weights
         Request update_weights_req = serialize_request(WEIGHT_UPDATE, training_error, this->weights, update_compress, cmt_xtrain_trans, mpz_class{ctx->N}, mpz_class{ctx->Ns}, mpz_class{ctx->g});
@@ -313,7 +313,7 @@ void Logistic_Regression::train(Matrix xtrain_enc, Matrix xtrain_trans_enc, Matr
         if(start_idx + batchSize >= xtrain_enc->rows)
             start_idx = xtrain_enc->rows - batchSize;
      
-        std::cout << "step " << step << "weights " << mpz_get_si(mat_element(this->weights, 0,0)) << "\n";
+//        std::cout << "step " << step << "weights " << mpz_get_si(mat_element(this->weights, 0,0)) << "\n";
     }
     enclave_set_sfk();
 
