@@ -29,20 +29,20 @@ make install
 
 # INSTALL NOTES FOR BIG MACHINE
 
-[x] Build (enclave modified) GMP library (https://github.com/intel/sgx-gmp)
+- Build (enclave modified) GMP library (https://github.com/intel/sgx-gmp)
 Note: make check doesn't pass - ostensibly bc of sgx defined types
 
 In this order (Intel_SGX_Installation_Guide_Linux_2.13_Open_Source)
-[x] Build SGX Pre-Reqs
-[x] Build SGX Driver (without ECDSA attestation)
+- Build SGX Pre-Reqs
+- Build SGX Driver (without ECDSA attestation)
 Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars after reinitializing
 
-[x] Build SGX PSW
-[x] Build SGX SDK 
+- Build SGX PSW
+- Build SGX SDK 
 Note: mitigation tools?
 Reference: https://download.01.org/intel-sgx/sgx-linux/2.13/docs/Intel_SGX_Installation_Guide_Linux_2.13_Open_Source.pdf
 
-[x] set appropriate directories in Makefile
+- set appropriate directories in Makefile
 
 
 # RUN
@@ -66,10 +66,40 @@ make
 
 # DOCUMENTATION
 
-**App**
-launch_enclave()
-- sets up secure SGX enclave
-- returns success/error
+**App.h**
+`launch_enclave()`-> sets up secure SGX enclave, returns success/error
+
+**Context.h**
+
+**Keygen.h**
+
+-> instantiates public and secret key vectors
+
+`public_key` -> Return pk
+
+`secret_key` -> Return sk
+
+**Encryptor.h**
+
+`encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext)` -> Encrypt Matrix of plaintexts, sets ciphertext Matrix and commitment Matrix
+
+**Evaluator.h**
+
+
+void 
+        void evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk, int activation = NO_ACTIVATION, int start = 0, int end = -1);
+
+`compress(Matrix compression, const Matrix ciphertext, const Matrix inp);` -> First part of decryption, sets compression Matrix
+
+`evaluate()` -> Final decryption
+
+**Logistic_Regression.h**
+
+`train()` -> Trains data and updates model weights
+
+`predict()` -> Performs compression, applies sigmoid within enclave to create classification tag
+
+`compute_performance_metrics()` -> analyze output of ML model
 
 
 
