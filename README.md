@@ -82,13 +82,19 @@ Constructor -> instantiates public and secret key vectors
 
 `secret_key()` -> Return sk
 
+`key_der(const Matrix y, mpz_t hky)` -> Derives key from y and secret key
+
 **Encryptor.h**
+
+Constructor -> instantiates Encryptor using Context
 
 `encrypt(Matrix ciphertext, Matrix commitment, const Matrix plaintext)` -> Encrypt Matrix of plaintexts, sets ciphertext Matrix and commitment Matrix
 
 **Evaluator.h**
 
-`compress(Matrix compression, const Matrix ciphertext, const Matrix inp)` -> First part of decryption, sets compression Matrix
+Constructor -> instantiates Evaluator using Context
+
+`compress(Matrix compression, const Matrix ciphertext, const Matrix inp)` -> First part of decryption, sets compression and commitment Matrix
 
 `evaluate(Matrix dest, const Matrix compression, const Matrix cmt, const mpz_t &sfk)` -> Second part of decryption, sets destination Matrix
 
