@@ -39,7 +39,7 @@ Note: may need to (re)execute /home/jess/sgxsdk/enviornment for correct env vars
 
 - Build SGX PSW
 - Build SGX SDK 
-Note: mitigation tools?
+Note:
 Reference: https://download.01.org/intel-sgx/sgx-linux/2.13/docs/Intel_SGX_Installation_Guide_Linux_2.13_Open_Source.pdf
 
 - set appropriate directories in Makefile
